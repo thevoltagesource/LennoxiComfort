@@ -8,8 +8,8 @@ The code in /ha_componenet is the Home Assistant climate component
 If I can figure out how to talk to the thermostat directly I will add that code here as well, but I don't have a lot of hope for that at the moment.  If I get really bored, maybe I could build a fake local cloud server and force my thermostat to talk to it.
 
 
-# Credit
+# Credits
 My code is built on the work of Jarome Avondo (ut666)
-API: https://github.com/ut666/LennoxPy
-HA Component: https://github.com/ut666/Homeassistant/tree/master/custom_components/climate
-Lennox Cloud API details: https://github.com/ut666/LennoxThermoPi-II
+* API: https://github.com/ut666/LennoxPy
+* HA Component: https://github.com/ut666/Homeassistant/tree/master/custom_components/climate
+* Lennox Cloud API details: https://github.com/ut666/LennoxThermoPi-II
