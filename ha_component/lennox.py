@@ -23,7 +23,7 @@ Ideas/Future:
   Support thermostat programs
 
 Change log:
-  20180218 - Initial commit. Provides sensor data and allows control of all moanual modes.
+  20180218 - Initial commit. Provides sensor data and allows control of all manual modes.
 
 """
 
@@ -52,6 +52,16 @@ _LOGGER = logging.getLogger(__name__)
 SUPPORT_FLAGS = (SUPPORT_TARGET_TEMPERATURE_HIGH | SUPPORT_TARGET_TEMPERATURE |
                  SUPPORT_TARGET_TEMPERATURE_LOW | SUPPORT_OPERATION_MODE |
                  SUPPORT_AWAY_MODE | SUPPORT_FAN_MODE)
+
+# List ordered to match API order
+OP_MODES = [
+    STATE_OFF, STATE_HEAT, STATE_COOL, STATE_AUTO
+]
+
+# List ordered to match API order
+FAN_MODES = [
+    STATE_AUTO, STATE_ON, "Circulate"
+]
 
 PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
     vol.Required(CONF_USERNAME): cv.string,
@@ -93,11 +103,6 @@ class LennoxClimate(ClimateDevice):
         self._program_list = self._api._program_list
         self._fan_list = self._api.fan_mode_list      
         self._operation_list = self._api.op_mode_list
-
-        if self._api._away_mode == 1:
-            self._away = 'on'
-        else:
-            self._away = 'off'
         
 
     def update(self):
@@ -112,20 +117,13 @@ class LennoxClimate(ClimateDevice):
         self._current_operation_mode = self._api.op_mode                
         self._current_fan_mode = self._api.fan_mode
         self._current_state = self._api.state
-
-        if self._api.away_mode == 1:
-            self._away = 'on'
-        else: 
-            self._away = 'off'
             
     @property
     def device_state_attributes(self):
         """Return device specific state attributes."""
         return {
         # Since we don't support setting humidity, we present current humidity as an attribute.
-        "current_humidity": self._current_humidity,
-        # Away mode was not always read properly, added attribute to make sure it is visible.
-        "away_mode": self._away
+        "current_humidity": self._current_humidity
         }
         
     @property
@@ -195,7 +193,7 @@ class LennoxClimate(ClimateDevice):
     @property
     def is_away_mode_on(self):
         """Return if away mode is on."""
-        return self._away
+        return self._api.away_mode
 
     @property
     def current_fan_mode(self):
