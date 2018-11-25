@@ -5,7 +5,7 @@ The code in /api is for interacting with the Lennox iComfot Cloud API to read da
 
 The code in /ha_componenet is the Home Assistant climate component
 
-To make this work in Home Assistant place lennox.py and lennox_api.py in <config directory>/custom_components/climate.  Once the files are in place add  the following to your configuration.yaml file:
+To make this work in Home Assistant, place 'lennox.py' from 'ha_component' and 'lennox_api.py' from 'api' in &lt;config directory&gt;/custom_components/climate.  Once the files are in place, add the following to your configuration.yaml file:
 ```yaml
 climate:
   - platform: lennox
@@ -14,7 +14,7 @@ climate:
     username: !secret icomfort_username
     password: !secret icomfort_password
 ```
-Platform has to be 'lennox' but everything else is your's to customiz.
+Platform has to be 'lennox' but everything else is your's to customize.
 
 If I can figure out how to talk to the thermostat directly I will add that code here as well, but I don't have a lot of hope for that at the moment.  If I get really bored, maybe I could build a fake local cloud server and force my thermostat to talk to it.
 
