@@ -1,28 +1,31 @@
 """
-Lennox iComfort Component for Home Assisant
-By Jacob Southard (sandlewoodshire)
-Based on the work done by Jarome Avondo (ut666)
+Lennox iComfort WiFi Climate Component for Home Assisant
+By Jacob Southard (github.com/sandlewoodshire)
+Based on the work of Jarome Avondo (github.com/ut666)
 
-Home Assistant Supported Version: 0.63.2
+Tested against Home Assistant Version: 0.81.2
 
 Notes:
-  The away setting on the thermostat can only (from what I can find) be set on the 
-  thermostat.  I have code in here to prevent settings from being adjusted when in 
-  away mode so there are no surprises when leaving away mode.
+  The away mode set points can only be set on the thermostat.  The code below prevents changing set points 
+  when in away mode so there are no surprises when leaving away mode.
 
-  Currently only supports manual mode (no programs) on the thermosat. 
+  Fan mode now uses STATE variables but there is no circuilate state. I added a text entry to FAN_MODES to account for this.
+  Fan mode now uses STATE variables but frontend doesn't auto capitalize fan mode like it does for op mode.
+
+  Currently this only supports manual mode (no programs) on the thermosat. I have not pursued creating this since I want HA managing
+  the thermostat behavior and not the thermostat itself.
 
 Issues:
-  Fan mode on more-info card not displayed properly due to polymer bug
-  https://github.com/home-assistant/home-assistant-polymer/pull/849
+  Need to make unit of measure configurable instead of hard coded.
 
 Ideas/Future:
-  For more visibility/control (due to away mode behaviour)
-    Add attributes for away settings
-    Add attributes for non-away settings
   Support thermostat programs
 
 Change log:
+  20181126 - Switched fan and op modes to report/accept HA STATE variables so component meets current HA standards.
+             This change fixes compactibility with the Lovelace thermostate card. Cleaned up notes/documentation.
+  20181125 - Cleaned up and simplified code. Using _api properties directly instead of copying to other variables.
+  20181124 - Changed AwayMode responseto fit current standards.
   20180218 - Initial commit. Provides sensor data and allows control of all manual modes.
 
 """
@@ -60,7 +63,7 @@ OP_MODES = [
 
 # List ordered to match API order. HA doesn't have a Circulate state defined.
 FAN_MODES = [
-    STATE_AUTO, STATE_ON, "Circulate"
+    STATE_AUTO, STATE_ON, 'circulate'
 ]
 
 PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
@@ -92,20 +95,20 @@ class LennoxClimate(ClimateDevice):
         self._unit_of_measurement = TEMP_FAHRENHEIT;
 
     def update(self):
-        """Get the latest data from the thermostat API."""
+        """Update data from the thermostat API."""
         self._api.pull_status()
             
     @property
     def device_state_attributes(self):
         """Return device specific state attributes."""
         return {
-        # Since we don't support setting humidity, we present current humidity as an attribute.
-        "current_humidity": self._api.current_humidity
+        # Since we don't support setting humidity, we present the current humidity as an attribute.
+        'current_humidity': self._api.current_humidity
         }
         
     @property
     def state(self):
-        """ Return current operational state """
+        """Return the current operational state."""
         return self._api.state
             
     @property
@@ -155,34 +158,36 @@ class LennoxClimate(ClimateDevice):
 
     @property
     def current_humidity(self):
-        """Return the current humidity."""
+        """Return the current humidity. Currently unused as HA only uses this if SUPPORT_TARGET_HUMIDITY is a supported feature"""
         return self._api.current_humidity
 
     @property
     def current_operation(self):
-        return self._api.op_mode
+        """Return the current operation mode."""
+        return OP_MODES[self._api.op_mode_list.index(self._api.op_mode)]
         
     @property
     def operation_list(self):
         """Return the list of available operation modes."""
-        return self._api.op_mode_list
+        return OP_MODES
 
     @property
     def is_away_mode_on(self):
-        """Return if away mode is on."""
+        """Return the current away mode status."""
         return self._api.away_mode
 
     @property
     def current_fan_mode(self):
-        return self._api.fan_mode
+        """Return the current fan mode."""
+        return FAN_MODES[self._api.fan_mode_list.index(self._api.fan_mode)]
         
     @property
     def fan_list(self):
         """Return the list of available fan modes."""
-        return self._api.fan_mode_list
+        return FAN_MODES
         
     def set_temperature(self, **kwargs):
-        """Set new target temperature. API expects a tuple with one or two temperatures"""
+        """Set new target temperature. API expects a tuple with one or two temperatures."""
         if not self._api.away_mode:
             if kwargs.get(ATTR_TEMPERATURE) is not None:
                 self._api.set_points = (kwargs.get(ATTR_TEMPERATURE), )
@@ -192,12 +197,12 @@ class LennoxClimate(ClimateDevice):
     def set_fan_mode(self, fan):
         """Set new fan mode."""
         if not self._api.away_mode:
-            self._api.fan_mode = fan
+            self._api.fan_mode = self._api.fan_mode_list[FAN_MODES.index(fan)]
 
     def set_operation_mode(self, operation_mode):
         """Set new operation mode."""
         if not self._api.away_mode:
-            self._api.op_mode = operation_mode
+            self._api.op_mode = self._api.op_mode_list[OP_MODES.index(operation_mode)]
                     
     def turn_away_mode_on(self):
         """Turn away mode on."""
