@@ -53,12 +53,12 @@ SUPPORT_FLAGS = (SUPPORT_TARGET_TEMPERATURE_HIGH | SUPPORT_TARGET_TEMPERATURE |
                  SUPPORT_TARGET_TEMPERATURE_LOW | SUPPORT_OPERATION_MODE |
                  SUPPORT_AWAY_MODE | SUPPORT_FAN_MODE)
 
-# List ordered to match API order
+# List ordered to match API order.
 OP_MODES = [
     STATE_OFF, STATE_HEAT, STATE_COOL, STATE_AUTO
 ]
 
-# List ordered to match API order
+# List ordered to match API order. HA doesn't have a Circulate state defined.
 FAN_MODES = [
     STATE_AUTO, STATE_ON, "Circulate"
 ]
@@ -91,45 +91,22 @@ class LennoxClimate(ClimateDevice):
         self._api = api
         self._unit_of_measurement = TEMP_FAHRENHEIT;
 
-        self._current_state = self._api.state
-        self._current_temperature = self._api.current_temperature
-        self._current_humidity = self._api.current_humidity
-        self._current_fan_mode = self._api.fan_mode
-        self._current_operation_mode = self._api.op_mode
-       
-        self._target_temperature_high = max(self._api.set_points)
-        self._target_temperature_low = min(self._api.set_points)
-
-        self._program_list = self._api._program_list
-        self._fan_list = self._api.fan_mode_list      
-        self._operation_list = self._api.op_mode_list
-        
-
     def update(self):
         """Get the latest data from the thermostat API."""
         self._api.pull_status()
-        
-        """set our sensor values"""
-        self._current_temperature = self._api.current_temperature
-        self._current_humidity = self._api.current_humidity
-        self._target_temperature_high = max(self._api.set_points)
-        self._target_temperature_low = min(self._api.set_points)
-        self._current_operation_mode = self._api.op_mode                
-        self._current_fan_mode = self._api.fan_mode
-        self._current_state = self._api.state
             
     @property
     def device_state_attributes(self):
         """Return device specific state attributes."""
         return {
         # Since we don't support setting humidity, we present current humidity as an attribute.
-        "current_humidity": self._current_humidity
+        "current_humidity": self._api.current_humidity
         }
         
     @property
     def state(self):
         """ Return current operational state """
-        return self._current_state
+        return self._api.state
             
     @property
     def name(self):
@@ -149,46 +126,46 @@ class LennoxClimate(ClimateDevice):
     @property
     def target_temperature(self):
         """Return the temperature we try to reach."""
-        if self.current_operation == 'Heat only':
-            return self._target_temperature_low
-        elif self.current_operation == 'Cool only':
-            return self._target_temperature_high
+        if self._api.op_mode == 'Heat only':
+            return min(self._api.set_points)
+        elif self._api.op_mode == 'Cool only':
+            return max(self._api.set_points)
         else:
             return None
     @property
     def current_temperature(self):
         """Return the current temperature."""
-        return self._current_temperature
+        return self._api.current_temperature
 
     @property
     def target_temperature_high(self):
         """Return the highbound target temperature we try to reach."""
-        if self.current_operation == 'Heat & Cool':
-            return self._target_temperature_high
+        if self._api.op_mode == 'Heat & Cool':
+            return max(self._api.set_points)
         else:
             return None
 
     @property
     def target_temperature_low(self):
         """Return the lowbound target temperature we try to reach."""
-        if self.current_operation == 'Heat & Cool':
-            return self._target_temperature_low
+        if self._api.op_mode == 'Heat & Cool':
+            return min(self._api.set_points)
         else:
             return None
 
     @property
     def current_humidity(self):
         """Return the current humidity."""
-        return self._current_humidity
+        return self._api.current_humidity
 
     @property
     def current_operation(self):
-        return self._current_operation_mode
+        return self._api.op_mode
         
     @property
     def operation_list(self):
         """Return the list of available operation modes."""
-        return self._operation_list
+        return self._api.op_mode_list
 
     @property
     def is_away_mode_on(self):
@@ -197,16 +174,16 @@ class LennoxClimate(ClimateDevice):
 
     @property
     def current_fan_mode(self):
-        return self._current_fan_mode
+        return self._api.fan_mode
         
     @property
     def fan_list(self):
         """Return the list of available fan modes."""
-        return self._fan_list
+        return self._api.fan_mode_list
         
     def set_temperature(self, **kwargs):
         """Set new target temperature. API expects a tuple with one or two temperatures"""
-        if self._away == 'off':
+        if not self._api.away_mode:
             if kwargs.get(ATTR_TEMPERATURE) is not None:
                 self._api.set_points = (kwargs.get(ATTR_TEMPERATURE), )
             else:
@@ -214,12 +191,12 @@ class LennoxClimate(ClimateDevice):
 
     def set_fan_mode(self, fan):
         """Set new fan mode."""
-        if self._away == 'off':
+        if not self._api.away_mode:
             self._api.fan_mode = fan
 
     def set_operation_mode(self, operation_mode):
         """Set new operation mode."""
-        if self._away == 'off':
+        if not self._api.away_mode:
             self._api.op_mode = operation_mode
                     
     def turn_away_mode_on(self):
