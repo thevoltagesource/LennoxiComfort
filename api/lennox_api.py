@@ -7,7 +7,7 @@ Notes:
   The away setting on the thermostat can only (from what I can find) be set on the 
   thermostat. 
 
-  Currently only supports manual mode (no programs) on the thermosat. 
+  Currently only supports manual mode (no programs) on the thermostat. 
 
 Issues:
 
@@ -18,6 +18,10 @@ Ideas/Future:
 
 Change log:
 
+  20181129 - Fixed how specified temperature units are handled. If no valid argument is supplied the code will use the
+             preferred temperature units of the thermostat. If a 0 or 1 is specified the code will use those units (F or C respectively) 
+             for cloud API communication.
+
   20180217 - Initial commit. Supports all the features I needed to get Home Assistant controlling/monitoring my thermostat.
 
 """
@@ -27,13 +31,20 @@ import requests
 class Lennox_iComfort_API():
     """Representation of the Lennox iComfort thermostat."""
     
-    def __init__(self, username, password, system=0, zone=0, units=0):
+    def __init__(self, username, password, system=0, zone=0, units=9):
         """Initialize the interface"""
         self._username = username
         self._credentials = (username, password)
         self._system = system # I only have one system so I default to the first one
         self._zone = zone # I only have one zone so I default to the first one
-        self._temp_units = str(units) #0 = F, 1 = C;  I default to F.
+
+        # If specified units value is 0 (F) or 1 (C) we will used the specified value.
+        if units == 0 or units == 1:
+            self._temperature_units = units
+            self._use_tstat_units = False
+        else:
+            self._temperature_units = 0
+            self._use_tstat_units = True
 
         self._service_url = "https://services.myicomfort.com/DBAcessService.svc/";
 
@@ -60,13 +71,18 @@ class Lennox_iComfort_API():
 
         self._get_serial_number()
         self.pull_status()
-    
+
+        # If we are using thermostat units we must re-request status now that we know the appropriate units
+        if self._use_tstat_units:
+            #print (units)
+            self.pull_status()
+   
     def _get_serial_number(self):
         # Retrieve serial number for indicated system
         commandURL = self._service_url + "GetSystemsInfo?UserId=" + self._username
         resp = requests.get(commandURL, auth=self._credentials)
-        print(resp)
-        print(self._system)
+        #print(resp)
+        #print(self._system)
         self._serial_number= resp.json()["Systems"][self._system]["Gateway_SN"]
 
     @property
@@ -74,6 +90,19 @@ class Lennox_iComfort_API():
         """ Return current operational state """
         return self._state_list[self._state]
     
+    @property
+    def temperature_units(self):
+        """ Return current temperature units """
+        return self._temperature_units
+    
+    @temperature_units.setter
+    def temperature_units(self, value):
+        """ Set new Temperature units. """
+        if value == 0 or value == 1:
+            self._temperature_units = value
+            self._use_tstat_units = False
+            self.pull_status()
+
     @property
     def op_mode(self):
         """ Return current operational mode """
@@ -132,46 +161,50 @@ class Lennox_iComfort_API():
         resp = requests.put(commandURL, auth=self._credentials);
 
     def pull_status(self):
-        """ Retrieve current thermosat status/settings """
+        """ Retrieve current thermostat status/settings """
 
-        commandURL = self._service_url + "GetTStatInfoList?gatewaysn=" + self._serial_number + "&TempUnit=" + self._temp_units
+        commandURL = self._service_url + "GetTStatInfoList?gatewaysn=" + self._serial_number + "&TempUnit=" + str(self._temperature_units)
         resp = requests.get(commandURL, auth=self._credentials);
-        #print (resp.json())
+        print (resp.json())
 
         #fetch the stats for the requested zone
         statInfo = resp.json()['tStatInfo'][self._zone];
 
-        #Current State
+        # If we are using thermostat units update our variable
+        if self._use_tstat_units:
+            self._temperature_units = int(statInfo['Pref_Temp_Units']) 
+
+        # Current State
         self._state = int(statInfo['System_Status']);
 
-        #Current Operation Mode
+        # Current Operation Mode
         self._op_mode = int(statInfo['Operation_Mode']);
         
-        #Current Fan Mode
+        # Current Fan Mode
         self._fan_mode = int(statInfo['Fan_Mode']);
                 
-        #Away mode status
+        # Away mode status
         self._away_mode = int(statInfo['Away_Mode']);
         
-        #Indoor temperature
+        # Indoor temperature
         self.current_temperature = float(statInfo['Indoor_Temp']);
 
-        #Indoor humidity
+        # Indoor humidity
         self.current_humidity = float(statInfo['Indoor_Humidity']);
 
-        #Setpoints
+        # Set points
         self._heat_to = float(statInfo['Heat_Set_Point']);
         self._cool_to = float(statInfo['Cool_Set_Point']);
             
         
     def _push_settings(self):
-        """ Push settings to thermosat """
+        """ Push settings to thermostat """
         data = {
             'Cool_Set_Point':self._cool_to, 
             'Heat_Set_Point':self._heat_to, 
             'Fan_Mode':self._fan_mode, 
             'Operation_Mode':self._op_mode, 
-            'Pref_Temp_Units':self._temp_units, 
+            'Pref_Temp_Units':self._temperature_units, 
             'Zone_Number':self._zone, 
             'GatewaySN':self._serial_number}
         

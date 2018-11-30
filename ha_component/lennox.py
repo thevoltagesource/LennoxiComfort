@@ -56,14 +56,19 @@ SUPPORT_FLAGS = (SUPPORT_TARGET_TEMPERATURE_HIGH | SUPPORT_TARGET_TEMPERATURE |
                  SUPPORT_TARGET_TEMPERATURE_LOW | SUPPORT_OPERATION_MODE |
                  SUPPORT_AWAY_MODE | SUPPORT_FAN_MODE)
 
-# List ordered to match API order.
+# List ordered to match API values.
 OP_MODES = [
     STATE_OFF, STATE_HEAT, STATE_COOL, STATE_AUTO
 ]
 
-# List ordered to match API order. HA doesn't have a Circulate state defined.
+# List ordered to match API values. HA doesn't have a 'circulate' state defined.
 FAN_MODES = [
     STATE_AUTO, STATE_ON, 'circulate'
+]
+
+# List ordered to match API values.
+TEMP_UNITS = [
+	TEMP_FAHRENHEIT, TEMP_CELSIUS
 ]
 
 PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
@@ -92,7 +97,6 @@ class LennoxClimate(ClimateDevice):
         """Initialize the climate device."""
         self._name = name
         self._api = api
-        self._unit_of_measurement = TEMP_FAHRENHEIT;
 
     def update(self):
         """Update data from the thermostat API."""
@@ -124,7 +128,7 @@ class LennoxClimate(ClimateDevice):
     @property
     def temperature_unit(self):
         """Return the unit of measurement."""
-        return self._unit_of_measurement
+        return TEMP_UNITS[self._api.temperature_units]
         
     @property
     def target_temperature(self):
