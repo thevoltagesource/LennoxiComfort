@@ -22,6 +22,7 @@ Ideas/Future:
   Support thermostat programs
 
 Change log:
+  20181129 - Added TEMP_UNITS list and created property for temperature_unit to report units used by tstat.  
   20181126 - Switched fan and op modes to report/accept HA STATE variables so component meets current HA standards.
              This change fixes compactibility with the Lovelace thermostate card. Cleaned up notes/documentation.
   20181125 - Cleaned up and simplified code. Using _api properties directly instead of copying to other variables.
