@@ -10,9 +10,12 @@ To make this work in Home Assistant, place 'lennox.py' from 'ha_component' and '
 climate:
   - platform: lennox
     name: lennox
-    friendly_name: iComfort
     username: !secret icomfort_username
     password: !secret icomfort_password
+    system: 0 (optional, default = 0)
+    zone: 0 (optional, default = 0)
+    min_temp: 55 (optional, default = 45)
+    max_temp: 90 (optional, default = 95)
 ```
 Platform has to be 'lennox' but everything else is your's to customize.
 
