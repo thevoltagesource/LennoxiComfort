@@ -1,5 +1,5 @@
 """
-Lennox iComfort API
+Lennox iComfort Wifi API
 By Jacob Southard (sandlewoodshire)
 Based on the work done by Jarome Avondo (ut666)
 
@@ -20,12 +20,12 @@ Ideas/Future:
   Find out if thermostat reports dehumidifying state to cloud.
 
 Change log:
+  20181203 - Changed mode/state properties to report the actual from cloud API value instead of the name of the respective mode/state.
+             API consumer now has the ability to use the numerical value or use name. 
   20181130 - Cleaned up the code to make it more readable and consistent.  Added comments.
-
   20181129 - Fixed how specified temperature units are handled. If no valid argument is supplied the code will use the
              preferred temperature units of the thermostat. If a 0 or 1 is specified the code will use those units (F or C respectively) 
              for cloud API communication.
-
   20180217 - Initial commit. Supports all the features I needed to get Home Assistant controlling/monitoring my thermostat.
 
 """
@@ -62,10 +62,10 @@ class Lennox_iComfort_API():
             self._use_tstat_units = True
 
         # Readable mode/state lists.
-        self._op_mode_list = ['Off', 'Heat only', 'Cool only', 'Heat & Cool']
+        self._op_mode_list = ['Off', 'Heat only', 'Cool only', 'Heat or Cool']
         self._fan_mode_list = ['Auto', 'On', 'Circulate']
         self._state_list = ['Idle', 'Heating', 'Cooling']
-        self._temp_units_list = ['F', 'C']
+        self._temp_units_list = [chr(176) + 'F', chr(176) + 'C']
 
         # Set point variables.
         self._heat_to = None
@@ -92,7 +92,11 @@ class Lennox_iComfort_API():
     @property
     def state(self):
         """ Return current operational state. """
-        return self._state_list[self._state]
+        return self._state
+    
+    @property
+    def state_list(self):
+        return self._state_list
     
     @property
     def op_mode_list(self):
@@ -102,6 +106,10 @@ class Lennox_iComfort_API():
     def fan_mode_list(self):
         return self._fan_mode_list
 
+    @property
+    def temp_units_list(self):
+        return self._temp_units_list
+    
     @property
     def current_temperature(self):
         """ Return the current temperature. """
@@ -130,23 +138,23 @@ class Lennox_iComfort_API():
     @property
     def op_mode(self):
         """ Return current operational mode. """
-        return self._op_mode_list[self._op_mode]
+        return self._op_mode
 
     @op_mode.setter
     def op_mode(self, value):
         """ Set operational mode. """
-        self._op_mode = self._op_mode_list.index(value)
+        self._op_mode = value
         self._push_settings()
 
     @property
     def fan_mode(self):
         """ Return current fan mode. """
-        return self._fan_mode_list[self._fan_mode]
+        return self._fan_mode
 
     @fan_mode.setter
     def fan_mode(self, value):
         """ Set fan mode. """
-        self._fan_mode = self._fan_mode_list.index(value)
+        self._fan_mode = value
         self._push_settings()
 
     @property

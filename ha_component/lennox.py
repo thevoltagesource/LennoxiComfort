@@ -22,6 +22,7 @@ Ideas/Future:
   Support thermostat programs
 
 Change log:
+  20181202 - Updated to work with changes made to API.  Added configurable min and max temp properties.
   20181129 - Added TEMP_UNITS list and created property for temperature_unit to report units used by tstat.  
   20181126 - Switched fan and op modes to report/accept HA STATE variables so component meets current HA standards.
              This change fixes compactibility with the Lovelace thermostate card. Cleaned up notes/documentation.
@@ -37,6 +38,8 @@ import voluptuous as vol
 from homeassistant.components.sensor import PLATFORM_SCHEMA
 from homeassistant.helpers.entity import Entity
 import homeassistant.helpers.config_validation as cv
+
+from homeassistant.util.temperature import convert as convert_temperature
 
 from homeassistant.components.climate import (
     ATTR_TARGET_TEMP_HIGH, ATTR_TARGET_TEMP_LOW, DOMAIN,
@@ -78,6 +81,8 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
     vol.Required('name'): cv.string,
     vol.Optional('system', default=0): vol.Coerce(int),
     vol.Optional('zone', default=0): vol.Coerce(int),
+    vol.Optional('min_temp'): vol.Coerce(float),
+    vol.Optional('max_temp'): vol.Coerce(float),
 })
 
 def setup_platform(hass, config, add_devices, discovery_info=None):
@@ -87,17 +92,21 @@ def setup_platform(hass, config, add_devices, discovery_info=None):
         system = config.get('system')
         zone = config.get('zone')
         name = config.get('name')
+        min_temp = config.get('min_temp')
+        max_temp = config.get('max_temp')
 
         """Create the climate device"""
-        climate = [LennoxClimate(name, Lennox_iComfort_API(username, password, system, zone))]
+        climate = [LennoxClimate(name, min_temp, max_temp, Lennox_iComfort_API(username, password, system, zone))]
         add_devices(climate, True)
 
 class LennoxClimate(ClimateDevice):
 
-    def __init__(self, name, api):
+    def __init__(self, name, min_temp, max_temp, api):
         """Initialize the climate device."""
         self._name = name
         self._api = api
+        self._min_temp = min_temp
+        self._max_temp = max_temp
 
     def update(self):
         """Update data from the thermostat API."""
@@ -114,7 +123,7 @@ class LennoxClimate(ClimateDevice):
     @property
     def state(self):
         """Return the current operational state."""
-        return self._api.state
+        return self._api.state_list[self._api.state]
             
     @property
     def name(self):
@@ -132,11 +141,24 @@ class LennoxClimate(ClimateDevice):
         return TEMP_UNITS[self._api.temperature_units]
         
     @property
+    def min_temp(self):
+        if self._min_temp:
+        	return self._min_temp
+        return super().min_temp
+
+    @property
+    def max_temp(self):
+        """Return the maximum temperature."""
+        if self._max_temp:
+        	return self._max_temp
+        return super().max_temp
+
+    @property
     def target_temperature(self):
         """Return the temperature we try to reach."""
-        if self._api.op_mode == 'Heat only':
+        if self._api.op_mode == 1:
             return min(self._api.set_points)
-        elif self._api.op_mode == 'Cool only':
+        elif self._api.op_mode == 2:
             return max(self._api.set_points)
         else:
             return None
@@ -148,7 +170,7 @@ class LennoxClimate(ClimateDevice):
     @property
     def target_temperature_high(self):
         """Return the highbound target temperature we try to reach."""
-        if self._api.op_mode == 'Heat & Cool':
+        if self._api.op_mode == 3:
             return max(self._api.set_points)
         else:
             return None
@@ -156,7 +178,7 @@ class LennoxClimate(ClimateDevice):
     @property
     def target_temperature_low(self):
         """Return the lowbound target temperature we try to reach."""
-        if self._api.op_mode == 'Heat & Cool':
+        if self._api.op_mode == 3:
             return min(self._api.set_points)
         else:
             return None
@@ -169,7 +191,7 @@ class LennoxClimate(ClimateDevice):
     @property
     def current_operation(self):
         """Return the current operation mode."""
-        return OP_MODES[self._api.op_mode_list.index(self._api.op_mode)]
+        return OP_MODES[self._api.op_mode]
         
     @property
     def operation_list(self):
@@ -184,7 +206,7 @@ class LennoxClimate(ClimateDevice):
     @property
     def current_fan_mode(self):
         """Return the current fan mode."""
-        return FAN_MODES[self._api.fan_mode_list.index(self._api.fan_mode)]
+        return FAN_MODES[self._api.fan_mode]
         
     @property
     def fan_list(self):
@@ -202,12 +224,12 @@ class LennoxClimate(ClimateDevice):
     def set_fan_mode(self, fan):
         """Set new fan mode."""
         if not self._api.away_mode:
-            self._api.fan_mode = self._api.fan_mode_list[FAN_MODES.index(fan)]
+            self._api.fan_mode = FAN_MODES.index(fan)
 
     def set_operation_mode(self, operation_mode):
         """Set new operation mode."""
         if not self._api.away_mode:
-            self._api.op_mode = self._api.op_mode_list[OP_MODES.index(operation_mode)]
+            self._api.op_mode = OP_MODES.index(operation_mode)
                     
     def turn_away_mode_on(self):
         """Turn away mode on."""
