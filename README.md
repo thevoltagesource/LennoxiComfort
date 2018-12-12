@@ -23,7 +23,7 @@ If I can figure out how to talk to the thermostat directly I will add that code 
 
 
 # Credits
-My code is built on the work of Jarome Avondo (ut666)
+My code is built on the work of Jerome Avondo (ut666)
 * API: https://github.com/ut666/LennoxPy
 * HA Component: https://github.com/ut666/Homeassistant/tree/master/custom_components/climate
 * Lennox Cloud API details: https://github.com/ut666/LennoxThermoPi-II

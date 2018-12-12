@@ -1,9 +1,9 @@
 """
 Lennox iComfort WiFi Climate Component for Home Assisant
 By Jacob Southard (github.com/sandlewoodshire)
-Based on the work of Jarome Avondo (github.com/ut666)
+Based on the work of Jerome Avondo (github.com/ut666)
 
-Tested against Home Assistant Version: 0.81.2
+Tested against Home Assistant Version: 0.83.3
 
 Notes:
   The away mode set points can only be set on the thermostat.  The code below prevents changing set points 
@@ -22,6 +22,8 @@ Ideas/Future:
   Support thermostat programs
 
 Change log:
+  20181211 - Chnaged state() to return item from list of STATE_* constants so the state will deplay in Lovelace
+             Removed manual entry of current humidity to device attributes as 0.83 does this natively now.
   20181202 - Updated to work with changes made to API.  Added configurable min and max temp properties.
   20181129 - Added TEMP_UNITS list and created property for temperature_unit to report units used by tstat.  
   20181126 - Switched fan and op modes to report/accept HA STATE variables so component meets current HA standards.
@@ -49,7 +51,7 @@ from homeassistant.components.climate import (
     SUPPORT_OPERATION_MODE, SUPPORT_AWAY_MODE, SUPPORT_FAN_MODE)
 from homeassistant.const import (
     CONF_USERNAME, CONF_PASSWORD, TEMP_CELSIUS, TEMP_FAHRENHEIT,
-    STATE_ON, STATE_OFF, STATE_UNKNOWN,
+    STATE_ON, STATE_OFF, STATE_IDLE, STATE_UNKNOWN,
     ATTR_TEMPERATURE, EVENT_HOMEASSISTANT_START)
 
 from custom_components.climate.lennox_api import Lennox_iComfort_API
@@ -73,6 +75,11 @@ FAN_MODES = [
 # List ordered to match API values.
 TEMP_UNITS = [
 	TEMP_FAHRENHEIT, TEMP_CELSIUS
+]
+
+# List ordered to match API values.
+SYSTEM_STATES = [
+    STATE_IDLE, STATE_HEAT, STATE_COOL
 ]
 
 PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
@@ -117,13 +124,14 @@ class LennoxClimate(ClimateDevice):
         """Return device specific state attributes."""
         return {
         # Since we don't support setting humidity, we present the current humidity as an attribute.
-        'current_humidity': self._api.current_humidity
+        # As of 0.83 current_humidity is added to the state attributes automatically so we don't need this manuall entry.
+        #'current_humidity': self._api.current_humidity
         }
         
     @property
     def state(self):
         """Return the current operational state."""
-        return self._api.state_list[self._api.state]
+        return SYSTEM_STATES[self._api.state]
             
     @property
     def name(self):
