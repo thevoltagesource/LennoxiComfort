@@ -1,7 +1,7 @@
 """
 Lennox iComfort Wifi API
 By Jacob Southard (sandlewoodshire)
-Based on the work done by Jarome Avondo (ut666)
+Based on the work done by Jerome Avondo (ut666)
 
 Notes: 
   This API currently only supports manual mode (no programs) on the thermostat. 
@@ -198,7 +198,7 @@ class Lennox_iComfort_API():
 
         commandURL = self._service_url + "GetTStatInfoList?gatewaysn=" + self._serial_number + "&TempUnit=" + str(self._temperature_units)
         resp = requests.get(commandURL, auth=self._credentials)
-        print (resp.json())
+        #print (resp.json())
 
         # Fetch the stats for the requested zone.
         statInfo = resp.json()['tStatInfo'][self._zone]
