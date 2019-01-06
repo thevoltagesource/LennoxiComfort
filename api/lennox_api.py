@@ -20,6 +20,7 @@ Ideas/Future:
   Find out if thermostat reports dehumidifying state to cloud.
 
 Change log:
+  20190105 - Implemented Logging and exception handling. Cleaned up code. Prevent additional cloud API calls if init fails.
   20181203 - Changed mode/state properties to report the actual from cloud API value instead of the name of the respective mode/state.
              API consumer now has the ability to use the numerical value or use name. 
   20181130 - Cleaned up the code to make it more readable and consistent.  Added comments.
@@ -30,30 +31,26 @@ Change log:
 
 """
 
+import logging
 import requests
+
+_LOGGER = logging.getLogger(__name__)
+SERVICE_URL = "https://services.myicomfort.com/DBAcessService.svc/"
 
 class Lennox_iComfort_API():
     """ Representation of the Lennox iComfort thermostat. """
-    
+
     def __init__(self, username, password, system=0, zone=0, units=9):
         """ Initialize the API interface. """
+        _LOGGER.info('Initializing Thermostat')
 
-        # Lennox cloud service API URL.
-        self._service_url = "https://services.myicomfort.com/DBAcessService.svc/";
-
-        # Credentials passed to the instance.
+        # Service/system details.
         self._credentials = (username, password)
-
-        # System identifier this instance interacts with.  Default is first system.
-        self._system = system # I only have one system so I default to the first one
-
-        # Zone identifier this instance interacts with.  Default is first zone.
-        self._zone = zone # I only have one zone so I default to the first one
-
-        # Serial number of specified system. Value retrieved from Lennox API.
+        self._system = system 
+        self._zone = zone
         self._serial_number = None
 
-        # If specified units value is 0 (F) or 1 (C) we will used the specified value.
+        # Use specified units if value is 0 (F) or 1 (C)
         if units == 0 or units == 1:
             self._temperature_units = units
             self._use_tstat_units = False
@@ -81,35 +78,25 @@ class Lennox_iComfort_API():
         self._current_temperature = None
         self._current_humidity = None
 
+        # Connect to service and collect initial values.
         self._get_serial_number()
         self.pull_status()
 
-        # If we are using thermostat units we must re-request status now that we know the appropriate units
+        # If we are using thermostat units we must re-request status now that
+        # we know the appropriate units
         if self._use_tstat_units:
-            #print (units)
             self.pull_status()
-   
+
+    @property
+    def state_list(self):
+        """ Return list of states """
+        return self._state_list
+
     @property
     def state(self):
         """ Return current operational state. """
         return self._state
-    
-    @property
-    def state_list(self):
-        return self._state_list
-    
-    @property
-    def op_mode_list(self):
-        return self._op_mode_list   
 
-    @property
-    def fan_mode_list(self):
-        return self._fan_mode_list
-
-    @property
-    def temp_units_list(self):
-        return self._temp_units_list
-    
     @property
     def current_temperature(self):
         """ Return the current temperature. """
@@ -121,19 +108,30 @@ class Lennox_iComfort_API():
         return self._current_humidity
 
     @property
+    def temp_units_list(self):
+        """ Return list of termperature units """
+        return self._temp_units_list
+
+    @property
     def temperature_units(self):
         """ Return current temperature units. """
         return self._temperature_units
-    
+
     @temperature_units.setter
     def temperature_units(self, value):
         """ Set Temperature units. """
         if value == 0 or value == 1:
             self._temperature_units = value
             self._use_tstat_units = False
-            # Since we aren't changing a setting on the thermostat there is no reason to push settings.
+            # Since we aren't changing a setting on the thermostat there is no
+            # reason to push settings.
             # Desired units are passed with every call to the cloud API.
             self.pull_status()
+
+    @property
+    def op_mode_list(self):
+        """ Return list of states """
+        return self._op_mode_list   
 
     @property
     def op_mode(self):
@@ -145,6 +143,11 @@ class Lennox_iComfort_API():
         """ Set operational mode. """
         self._op_mode = value
         self._push_settings()
+
+    @property
+    def fan_mode_list(self):
+        """ Return list of fan modes """
+        return self._fan_mode_list
 
     @property
     def fan_mode(self):
@@ -159,7 +162,7 @@ class Lennox_iComfort_API():
 
     @property
     def set_points(self):
-        """ Return current temperature set points as a tuple (heat_to, cool_to). """
+        """ Return current set points as a tuple (heat_to, cool_to). """
         return (self._heat_to, self._cool_to)
 
     @set_points.setter
@@ -190,69 +193,97 @@ class Lennox_iComfort_API():
     @away_mode.setter
     def away_mode(self, value):
         """ Set away mode. """
-        commandURL = self._service_url + "SetAwayModeNew?gatewaysn=" + self._serial_number + "&awaymode=" + str(value)
-        resp = requests.put(commandURL, auth=self._credentials)
+        if self._serial_number is not None:
+            commandURL = ( SERVICE_URL
+                           + "SetAwayModeNew?gatewaysn="
+                           + self._serial_number
+                           + "&awaymode="
+                           + str(value) )
+            resp = requests.put(commandURL, auth=self._credentials)
+            if resp.status_code == 200:
+                _LOGGER.debug(resp.json())
+            else:
+                _LOGGER.error('MyiComfort cloud service not responding.')
 
     def pull_status(self):
         """ Retrieve current thermostat status/settings. """
+        if self._serial_number is not None:
+            commandURL = ( SERVICE_URL
+                           + "GetTStatInfoList?gatewaysn=" 
+                           + self._serial_number
+                           + "&TempUnit="
+                           + str(self._temperature_units) )
+            resp = requests.get(commandURL, auth=self._credentials)
+            if resp.status_code == 200:
+                _LOGGER.debug(resp.json())
+                try:
+                    statInfo = resp.json()['tStatInfo'][self._zone]
+                except IndexError:
+                    _LOGGER.warning('Specfied zone doesn\'t exist. Switching'
+                                    + ' to first zone.')
+                    self._zone = 0
+                    try:
+                        statInfo = resp.json()['tStatInfo'][self._zone]
+                    except IndexError:
+                        _LOGGER.error('No Zones Found.')
+            else:
+                _LOGGER.error('MyiComfort cloud service not responding.')
 
-        commandURL = self._service_url + "GetTStatInfoList?gatewaysn=" + self._serial_number + "&TempUnit=" + str(self._temperature_units)
-        resp = requests.get(commandURL, auth=self._credentials)
-        #print (resp.json())
+            if self._use_tstat_units:
+                self._temperature_units = int(statInfo['Pref_Temp_Units']) 
+            self._state = int(statInfo['System_Status'])
+            self._op_mode = int(statInfo['Operation_Mode'])
+            self._fan_mode = int(statInfo['Fan_Mode'])
+            self._away_mode = int(statInfo['Away_Mode'])
+            self._current_temperature = float(statInfo['Indoor_Temp'])
+            self._current_humidity = float(statInfo['Indoor_Humidity'])
+            self._heat_to = float(statInfo['Heat_Set_Point'])
+            self._cool_to = float(statInfo['Cool_Set_Point'])
 
-        # Fetch the stats for the requested zone.
-        statInfo = resp.json()['tStatInfo'][self._zone]
-
-        # If we are using thermostat units, update our variable.
-        if self._use_tstat_units:
-            self._temperature_units = int(statInfo['Pref_Temp_Units']) 
-
-        # Current system state.
-        self._state = int(statInfo['System_Status'])
-
-        # Current Operation Mode.
-        self._op_mode = int(statInfo['Operation_Mode'])
-        
-        # Current Fan Mode.
-        self._fan_mode = int(statInfo['Fan_Mode'])
-                
-        # Away mode status.
-        self._away_mode = int(statInfo['Away_Mode'])
-        
-        # Current temperature value.
-        self._current_temperature = float(statInfo['Indoor_Temp'])
-
-        # Current humidity value.
-        self._current_humidity = float(statInfo['Indoor_Humidity'])
-
-        # Set points
-        self._heat_to = float(statInfo['Heat_Set_Point'])
-        self._cool_to = float(statInfo['Cool_Set_Point'])
-            
-        
     def _push_settings(self):
         """ Push settings to Lennox Cloud API. """
-        data = {
-            'Cool_Set_Point':self._cool_to, 
-            'Heat_Set_Point':self._heat_to, 
-            'Fan_Mode':self._fan_mode, 
-            'Operation_Mode':self._op_mode, 
-            'Pref_Temp_Units':self._temperature_units, 
-            'Zone_Number':self._zone, 
-            'GatewaySN':self._serial_number
-        }
-        
-        commandURL = self._service_url + "SetTStatInfo"
-        headers = {'contentType': 'application/x-www-form-urlencoded', 'requestContentType': 'application/json; charset=utf-8'}
-        resp = requests.put(commandURL, auth=self._credentials, json=data, headers=headers);
-        # print (resp)
+        if self._serial_number is not None:
+            data = {
+                'Cool_Set_Point':self._cool_to, 
+                'Heat_Set_Point':self._heat_to, 
+                'Fan_Mode':self._fan_mode, 
+                'Operation_Mode':self._op_mode, 
+                'Pref_Temp_Units':self._temperature_units, 
+                'Zone_Number':self._zone, 
+                'GatewaySN':self._serial_number
+            }
+
+            commandURL = SERVICE_URL + "SetTStatInfo"
+            headers = {'contentType': 'application/x-www-form-urlencoded',
+                       'requestContentType': 'application/json; charset=utf-8'}
+            resp = requests.put(commandURL, auth=self._credentials,
+                                json=data, headers=headers)
+            if resp.status_code == 200:
+                _LOGGER.debug(resp.json())
+            else:
+                _LOGGER.error('MyiComfort cloud service not responding.')
 
     def _get_serial_number(self):
         """" Retrieve serial number for specified system. """
-        commandURL = self._service_url + "GetSystemsInfo?UserId=" + self._credentials[0]
+        commandURL = ( SERVICE_URL
+                       + "GetSystemsInfo?UserId="
+                       + self._credentials[0] )
         resp = requests.get(commandURL, auth=self._credentials)
-        self._serial_number= resp.json()["Systems"][self._system]["Gateway_SN"]
-        #print(resp)
-        #print(self._system)
-
-
+        if resp.status_code == 200:
+            _LOGGER.debug(resp.json())
+            try:
+                self._serial_number = ( resp.json()["Systems"]
+                                        [self._system]["Gateway_SN"] )
+            except IndexError:
+                _LOGGER.warning('Specfied system not found. Switching to'
+                                + ' first system')
+                self._system = 0
+                try:
+                    self._serial_number= ( resp.json()["Systems"]
+                                           [self._system]["Gateway_SN"] )
+                except IndexError:
+                    _LOGGER.error('No Systems Found.')
+        elif resp.status_code == 401:
+            _LOGGER.error('Username or password incorrect.')
+        else:
+            _LOGGER.error('MyiComfort cloud service not responding.')
