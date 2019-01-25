@@ -1,85 +1,92 @@
 """
 Lennox iComfort WiFi Climate Component for Home Assisant
-By Jacob Southard (github.com/sandlewoodshire)
+By Jacob Southard (github.com/thevoltagesource)
 Based on the work of Jerome Avondo (github.com/ut666)
 
-Tested against Home Assistant Version: 0.83.3
+Tested against Home Assistant Version: 0.85.0
 
 Notes:
-  The away mode set points can only be set on the thermostat.  The code below prevents changing set points 
-  when in away mode so there are no surprises when leaving away mode.
+  The away mode set points can only be set on the thermostat.  The code below
+  prevents changing set points when in away mode so there are no surprises
+  when leaving away mode.
 
-  Fan mode now uses STATE variables but there is no circuilate state. I added a text entry to FAN_MODES to account for this.
-  Fan mode now uses STATE variables but frontend doesn't auto capitalize fan mode like it does for op mode.
-
-  Currently this only supports manual mode (no programs) on the thermosat. I have not pursued creating this since I want HA managing
-  the thermostat behavior and not the thermostat itself.
+  Since HA changed to using standardized STATE_* constants for device state and
+  operation mode, I change fan mode to also use those constants. Hwever, there
+  is no STATE_CIRCULATE, so I define one, and the frontend doesn't auto 
+  capitalize fan mode like it does for op mode so this doesn't look consistant.
 
 Issues:
-  Need to make unit of measure configurable instead of hard coded.
 
 Ideas/Future:
-  Support thermostat programs
 
 Change log:
-  20181211 - Chnaged state() to return item from list of STATE_* constants so the state will deplay in Lovelace
-             Removed manual entry of current humidity to device attributes as 0.83 does this natively now.
-  20181202 - Updated to work with changes made to API.  Added configurable min and max temp properties.
-  20181129 - Added TEMP_UNITS list and created property for temperature_unit to report units used by tstat.  
-  20181126 - Switched fan and op modes to report/accept HA STATE variables so component meets current HA standards.
-             This change fixes compactibility with the Lovelace thermostate card. Cleaned up notes/documentation.
-  20181125 - Cleaned up and simplified code. Using _api properties directly instead of copying to other variables.
-  20181124 - Changed AwayMode responseto fit current standards.
-  20180218 - Initial commit. Provides sensor data and allows control of all manual modes.
+  20190125 - Switched reliance from local api file to PyPI hosted myicomfort
+             project. Moved import statement and added REQUIREMENTS variable
+             to match HA coding standards.
+  20190111 - Cleaned up code.
+  20181211 - Changed state() to return item from list of STATE_* constants so
+             the state will display in Lovelace. Removed manual entry of 
+             current humidity in device attributes as 0.83 does this natively
+             now.
+  20181202 - Updated to work with changes made to API. Added configurable min
+             and max temp properties.
+  20181129 - Added TEMP_UNITS list and created property for temperature_unit to
+             report units used by tstat.  
+  20181126 - Switched fan and op modes to report/accept HA STATE constants so
+             component meets current HA standards. This change fixes
+             compactibility with the Lovelace thermostate card. Cleaned up
+             notes/documentation.
+  20181125 - Cleaned up and simplified code. Using _api properties directly
+             instead of copying to other variables.
+  20181124 - Changed Away Mode response to fit current standards.
+  20180218 - Initial commit. Provides sensor data and allows control of all
+             manual modes.
 
 """
 
 import logging
 import voluptuous as vol
 
-from homeassistant.components.sensor import PLATFORM_SCHEMA
-from homeassistant.helpers.entity import Entity
 import homeassistant.helpers.config_validation as cv
 
-from homeassistant.util.temperature import convert as convert_temperature
-
 from homeassistant.components.climate import (
-    ATTR_TARGET_TEMP_HIGH, ATTR_TARGET_TEMP_LOW, DOMAIN,
+    ATTR_TARGET_TEMP_HIGH, ATTR_TARGET_TEMP_LOW,
     ClimateDevice, PLATFORM_SCHEMA, STATE_AUTO,
     STATE_COOL, STATE_HEAT, SUPPORT_TARGET_TEMPERATURE,
     SUPPORT_TARGET_TEMPERATURE_HIGH, SUPPORT_TARGET_TEMPERATURE_LOW,
     SUPPORT_OPERATION_MODE, SUPPORT_AWAY_MODE, SUPPORT_FAN_MODE)
 from homeassistant.const import (
     CONF_USERNAME, CONF_PASSWORD, TEMP_CELSIUS, TEMP_FAHRENHEIT,
-    STATE_ON, STATE_OFF, STATE_IDLE, STATE_UNKNOWN,
-    ATTR_TEMPERATURE, EVENT_HOMEASSISTANT_START)
+    STATE_ON, STATE_OFF, STATE_IDLE, ATTR_TEMPERATURE)
 
-from custom_components.climate.lennox_api import Lennox_iComfort_API
+REQUIREMENTS = ['myicomfort==0.2.0']
 
 _LOGGER = logging.getLogger(__name__)
 
-SUPPORT_FLAGS = (SUPPORT_TARGET_TEMPERATURE_HIGH | SUPPORT_TARGET_TEMPERATURE |
-                 SUPPORT_TARGET_TEMPERATURE_LOW | SUPPORT_OPERATION_MODE |
-                 SUPPORT_AWAY_MODE | SUPPORT_FAN_MODE)
+# HA doesn't have a 'circulate' state defined.
+STATE_CIRCULATE = 'circulate'
 
-# List ordered to match API values.
+SUPPORT_FLAGS = (SUPPORT_TARGET_TEMPERATURE |
+                 SUPPORT_TARGET_TEMPERATURE_HIGH | 
+                 SUPPORT_TARGET_TEMPERATURE_LOW |
+                 SUPPORT_OPERATION_MODE |
+                 SUPPORT_AWAY_MODE |
+                 SUPPORT_FAN_MODE)
+
+FAN_MODES = [
+    STATE_AUTO, STATE_ON, STATE_CIRCULATE
+]
+
 OP_MODES = [
     STATE_OFF, STATE_HEAT, STATE_COOL, STATE_AUTO
 ]
 
-# List ordered to match API values. HA doesn't have a 'circulate' state defined.
-FAN_MODES = [
-    STATE_AUTO, STATE_ON, 'circulate'
-]
-
-# List ordered to match API values.
-TEMP_UNITS = [
-	TEMP_FAHRENHEIT, TEMP_CELSIUS
-]
-
-# List ordered to match API values.
 SYSTEM_STATES = [
     STATE_IDLE, STATE_HEAT, STATE_COOL
+]
+
+TEMP_UNITS = [
+	TEMP_FAHRENHEIT, TEMP_CELSIUS
 ]
 
 PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
@@ -93,18 +100,21 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
 })
 
 def setup_platform(hass, config, add_devices, discovery_info=None):
-        """Setup the platform."""
-        username = config.get(CONF_USERNAME)
-        password = config.get(CONF_PASSWORD)
-        system = config.get('system')
-        zone = config.get('zone')
-        name = config.get('name')
-        min_temp = config.get('min_temp')
-        max_temp = config.get('max_temp')
+    """Setup the platform."""
+    from myicomfort.api import Tstat
 
-        """Create the climate device"""
-        climate = [LennoxClimate(name, min_temp, max_temp, Lennox_iComfort_API(username, password, system, zone))]
-        add_devices(climate, True)
+    username = config.get(CONF_USERNAME)
+    password = config.get(CONF_PASSWORD)
+    system = config.get('system')
+    zone = config.get('zone')
+    name = config.get('name')
+    min_temp = config.get('min_temp')
+    max_temp = config.get('max_temp')
+
+    climate = [LennoxClimate(name, min_temp, max_temp,
+               Tstat(username, password, system, zone))]
+
+    add_devices(climate, True)
 
 class LennoxClimate(ClimateDevice):
 
@@ -123,9 +133,6 @@ class LennoxClimate(ClimateDevice):
     def device_state_attributes(self):
         """Return device specific state attributes."""
         return {
-        # Since we don't support setting humidity, we present the current humidity as an attribute.
-        # As of 0.83 current_humidity is added to the state attributes automatically so we don't need this manuall entry.
-        #'current_humidity': self._api.current_humidity
         }
         
     @property
@@ -170,6 +177,7 @@ class LennoxClimate(ClimateDevice):
             return max(self._api.set_points)
         else:
             return None
+
     @property
     def current_temperature(self):
         """Return the current temperature."""
@@ -193,7 +201,7 @@ class LennoxClimate(ClimateDevice):
 
     @property
     def current_humidity(self):
-        """Return the current humidity. Currently unused as HA only uses this if SUPPORT_TARGET_HUMIDITY is a supported feature"""
+        """Return the current humidity."""
         return self._api.current_humidity
 
     @property
@@ -222,12 +230,13 @@ class LennoxClimate(ClimateDevice):
         return FAN_MODES
         
     def set_temperature(self, **kwargs):
-        """Set new target temperature. API expects a tuple with one or two temperatures."""
+        """Set new target temperature. API expects a tuple."""
         if not self._api.away_mode:
             if kwargs.get(ATTR_TEMPERATURE) is not None:
                 self._api.set_points = (kwargs.get(ATTR_TEMPERATURE), )
             else:
-                self._api.set_points = (kwargs.get(ATTR_TARGET_TEMP_LOW), kwargs.get(ATTR_TARGET_TEMP_HIGH))
+                self._api.set_points = (kwargs.get(ATTR_TARGET_TEMP_LOW),
+                                        kwargs.get(ATTR_TARGET_TEMP_HIGH))
 
     def set_fan_mode(self, fan):
         """Set new fan mode."""
