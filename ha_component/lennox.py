@@ -1,9 +1,10 @@
 """
-Lennox iComfort WiFi Climate Component for Home Assisant
+Lennox iComfort WiFi Climate Component for Home Assisant.
+
 By Jacob Southard (github.com/thevoltagesource)
 Based on the work of Jerome Avondo (github.com/ut666)
 
-Tested against Home Assistant Version: 0.85.0
+Tested against Home Assistant Version: 0.86.3
 
 Notes:
   The away mode set points can only be set on the thermostat.  The code below
@@ -11,8 +12,8 @@ Notes:
   when leaving away mode.
 
   Since HA changed to using standardized STATE_* constants for device state and
-  operation mode, I change fan mode to also use those constants. Hwever, there
-  is no STATE_CIRCULATE, so I define one, and the frontend doesn't auto 
+  operation mode, I change fan mode to also use those constants. However, there
+  is no STATE_CIRCULATE, so I define one, and the frontend doesn't auto
   capitalize fan mode like it does for op mode so this doesn't look consistant.
 
 Issues:
@@ -20,18 +21,19 @@ Issues:
 Ideas/Future:
 
 Change log:
+  20190127 - Fixed items flagged by flask8 and pylint
   20190125 - Switched reliance from local api file to PyPI hosted myicomfort
              project. Moved import statement and added REQUIREMENTS variable
              to match HA coding standards.
   20190111 - Cleaned up code.
   20181211 - Changed state() to return item from list of STATE_* constants so
-             the state will display in Lovelace. Removed manual entry of 
+             the state will display in Lovelace. Removed manual entry of
              current humidity in device attributes as 0.83 does this natively
              now.
   20181202 - Updated to work with changes made to API. Added configurable min
              and max temp properties.
   20181129 - Added TEMP_UNITS list and created property for temperature_unit to
-             report units used by tstat.  
+             report units used by tstat.
   20181126 - Switched fan and op modes to report/accept HA STATE constants so
              component meets current HA standards. This change fixes
              compactibility with the Lovelace thermostate card. Cleaned up
@@ -67,7 +69,7 @@ _LOGGER = logging.getLogger(__name__)
 STATE_CIRCULATE = 'circulate'
 
 SUPPORT_FLAGS = (SUPPORT_TARGET_TEMPERATURE |
-                 SUPPORT_TARGET_TEMPERATURE_HIGH | 
+                 SUPPORT_TARGET_TEMPERATURE_HIGH |
                  SUPPORT_TARGET_TEMPERATURE_LOW |
                  SUPPORT_OPERATION_MODE |
                  SUPPORT_AWAY_MODE |
@@ -86,7 +88,7 @@ SYSTEM_STATES = [
 ]
 
 TEMP_UNITS = [
-	TEMP_FAHRENHEIT, TEMP_CELSIUS
+    TEMP_FAHRENHEIT, TEMP_CELSIUS
 ]
 
 PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
@@ -99,8 +101,9 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
     vol.Optional('max_temp'): vol.Coerce(float),
 })
 
+
 def setup_platform(hass, config, add_devices, discovery_info=None):
-    """Setup the platform."""
+    """Set up the climate platform."""
     from myicomfort.api import Tstat
 
     username = config.get(CONF_USERNAME)
@@ -112,11 +115,13 @@ def setup_platform(hass, config, add_devices, discovery_info=None):
     max_temp = config.get('max_temp')
 
     climate = [LennoxClimate(name, min_temp, max_temp,
-               Tstat(username, password, system, zone))]
+                             Tstat(username, password, system, zone))]
 
     add_devices(climate, True)
 
+
 class LennoxClimate(ClimateDevice):
+    """Class for Lennox iComfort WiFi thermostat."""
 
     def __init__(self, name, min_temp, max_temp, api):
         """Initialize the climate device."""
@@ -128,18 +133,18 @@ class LennoxClimate(ClimateDevice):
     def update(self):
         """Update data from the thermostat API."""
         self._api.pull_status()
-            
+
     @property
     def device_state_attributes(self):
         """Return device specific state attributes."""
         return {
         }
-        
+
     @property
     def state(self):
         """Return the current operational state."""
         return SYSTEM_STATES[self._api.state]
-            
+
     @property
     def name(self):
         """Return the name of the climate device."""
@@ -154,18 +159,19 @@ class LennoxClimate(ClimateDevice):
     def temperature_unit(self):
         """Return the unit of measurement."""
         return TEMP_UNITS[self._api.temperature_units]
-        
+
     @property
     def min_temp(self):
+        """Return the minimum temperature."""
         if self._min_temp:
-        	return self._min_temp
+            return self._min_temp
         return super().min_temp
 
     @property
     def max_temp(self):
         """Return the maximum temperature."""
         if self._max_temp:
-        	return self._max_temp
+            return self._max_temp
         return super().max_temp
 
     @property
@@ -173,10 +179,9 @@ class LennoxClimate(ClimateDevice):
         """Return the temperature we try to reach."""
         if self._api.op_mode == 1:
             return min(self._api.set_points)
-        elif self._api.op_mode == 2:
+        if self._api.op_mode == 2:
             return max(self._api.set_points)
-        else:
-            return None
+        return None
 
     @property
     def current_temperature(self):
@@ -188,16 +193,14 @@ class LennoxClimate(ClimateDevice):
         """Return the highbound target temperature we try to reach."""
         if self._api.op_mode == 3:
             return max(self._api.set_points)
-        else:
-            return None
+        return None
 
     @property
     def target_temperature_low(self):
         """Return the lowbound target temperature we try to reach."""
         if self._api.op_mode == 3:
             return min(self._api.set_points)
-        else:
-            return None
+        return None
 
     @property
     def current_humidity(self):
@@ -208,7 +211,7 @@ class LennoxClimate(ClimateDevice):
     def current_operation(self):
         """Return the current operation mode."""
         return OP_MODES[self._api.op_mode]
-        
+
     @property
     def operation_list(self):
         """Return the list of available operation modes."""
@@ -223,12 +226,12 @@ class LennoxClimate(ClimateDevice):
     def current_fan_mode(self):
         """Return the current fan mode."""
         return FAN_MODES[self._api.fan_mode]
-        
+
     @property
     def fan_list(self):
         """Return the list of available fan modes."""
         return FAN_MODES
-        
+
     def set_temperature(self, **kwargs):
         """Set new target temperature. API expects a tuple."""
         if not self._api.away_mode:
@@ -238,16 +241,16 @@ class LennoxClimate(ClimateDevice):
                 self._api.set_points = (kwargs.get(ATTR_TARGET_TEMP_LOW),
                                         kwargs.get(ATTR_TARGET_TEMP_HIGH))
 
-    def set_fan_mode(self, fan):
+    def set_fan_mode(self, fan_mode):
         """Set new fan mode."""
         if not self._api.away_mode:
-            self._api.fan_mode = FAN_MODES.index(fan)
+            self._api.fan_mode = FAN_MODES.index(fan_mode)
 
     def set_operation_mode(self, operation_mode):
         """Set new operation mode."""
         if not self._api.away_mode:
             self._api.op_mode = OP_MODES.index(operation_mode)
-                    
+
     def turn_away_mode_on(self):
         """Turn away mode on."""
         self._api.away_mode = 1
@@ -255,5 +258,3 @@ class LennoxClimate(ClimateDevice):
     def turn_away_mode_off(self):
         """Turn away mode off."""
         self._api.away_mode = 0
-
-
