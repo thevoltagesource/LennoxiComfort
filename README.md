@@ -3,7 +3,7 @@ This code set is my custom component for Home Assistant to integrate with a Lenn
 
 Home Assistant made an architecture change in version 0.88 which has me revamping this respoitory. Please make sure to follow the steps for the version you are running.  I took this opportunity to change the component name.
 
-The API code used to interface with myicomfort.com has been published to PyPI and HA will install the appropriate version on startup the first time the component is loaded.  You no longer need to manually copy the API code to your installation.
+The API code used to interface with myicomfort.com has been published to PyPI and HA will install the appropriate version on startup the first time the component is loaded.  You no longer need to manually copy the API code to your installation.  If you previously copied lennox_api.py to your installation it is safe to delete this file now.
 
 ### Home Assistant 0.89 and newer
 Copy the 'myicomfort' folder and contents to &lt;config directory&gt;/custom_components/ and add the following to your configuration.yaml file:
