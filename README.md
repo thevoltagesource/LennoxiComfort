@@ -5,7 +5,7 @@ Home Assistant made an architecture change in version 0.88 which has me revampin
 
 The API code used to interface with myicomfort.com has been published to PyPI and HA will install the appropriate version on startup the first time the component is loaded.  You no longer need to manually copy the API code to your installation.
 
-### Home Assistant 0.88 and newer
+### Home Assistant 0.89 and newer
 Copy the 'myicomfort' folder and contents to &lt;config directory&gt;/custom_components/ and add the following to your configuration.yaml file:
 ```yaml
 climate:
