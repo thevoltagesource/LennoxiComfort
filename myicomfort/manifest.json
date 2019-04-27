@@ -1,0 +1,8 @@
+{
+    "domain": "iComfort",
+    "name": "Lennox iComfort",
+    "documentation": "https://github.com/thevoltagesource/LennoxiComfort",
+    "dependencies": [],
+    "codeowners": ["@thevoltagesource"],
+    "requirements": ["voluptuous"]
+  }
