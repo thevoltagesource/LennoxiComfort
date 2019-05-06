@@ -4,7 +4,7 @@ Lennox iComfort WiFi Climate Component for Home Assisant.
 By Jacob Southard (github.com/thevoltagesource)
 Based on the work of Jerome Avondo (github.com/ut666)
 
-Tested against Home Assistant Version: 0.89.1
+Tested against Home Assistant Version: 0.92.2
 
 Notes:
   The away mode set points can only be set on the thermostat.  The code below
@@ -21,6 +21,8 @@ Issues:
 Ideas/Future:
 
 Change log:
+  20190505 - Moved requirements to manifest.json. Bumped API requirement to
+             myicomfort=0.2.1
   20190314 - Changeed climate.const import to match HA change. Changed layout
              to match new HA 0.88 architecture.
   20190127 - Fixed items flagged by flask8 and pylint
@@ -62,8 +64,6 @@ from homeassistant.components.climate.const import (
 from homeassistant.const import (
     CONF_USERNAME, CONF_PASSWORD, TEMP_CELSIUS, TEMP_FAHRENHEIT,
     STATE_ON, STATE_OFF, STATE_IDLE, ATTR_TEMPERATURE)
-
-REQUIREMENTS = ['myicomfort==0.2.0']
 
 _LOGGER = logging.getLogger(__name__)
 
