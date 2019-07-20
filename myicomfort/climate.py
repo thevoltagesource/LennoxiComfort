@@ -4,23 +4,20 @@ Lennox iComfort WiFi Climate Component for Home Assisant.
 By Jacob Southard (github.com/thevoltagesource)
 Based on the work of Jerome Avondo (github.com/ut666)
 
-Tested against Home Assistant Version: 0.92.2
+Tested against Home Assistant Version: 0.96.2
 
 Notes:
   The away mode set points can only be set on the thermostat.  The code below
   prevents changing set points when in away mode so there are no surprises
   when leaving away mode.
 
-  Since HA changed to using standardized STATE_* constants for device state and
-  operation mode, I change fan mode to also use those constants. However, there
-  is no STATE_CIRCULATE, so I define one, and the frontend doesn't auto
-  capitalize fan mode like it does for op mode so this doesn't look consistant.
-
 Issues:
 
 Ideas/Future:
 
 Change log:
+  20190720 - Changed code to be HA Climate 1.0 compliant. The climate
+             integration was redesigned in Home Assistant 0.96.
   20190505 - Moved requirements to manifest.json. Bumped API requirement to
              myicomfort=0.2.1
   20190314 - Changeed climate.const import to match HA change. Changed layout
@@ -57,36 +54,35 @@ import voluptuous as vol
 import homeassistant.helpers.config_validation as cv
 from homeassistant.components.climate import ClimateDevice, PLATFORM_SCHEMA
 from homeassistant.components.climate.const import (
-    ATTR_TARGET_TEMP_HIGH, ATTR_TARGET_TEMP_LOW, STATE_AUTO,
-    STATE_COOL, STATE_HEAT, SUPPORT_TARGET_TEMPERATURE,
-    SUPPORT_TARGET_TEMPERATURE_HIGH, SUPPORT_TARGET_TEMPERATURE_LOW,
-    SUPPORT_OPERATION_MODE, SUPPORT_AWAY_MODE, SUPPORT_FAN_MODE)
+    CURRENT_HVAC_COOL, CURRENT_HVAC_HEAT, CURRENT_HVAC_IDLE,
+    HVAC_MODE_OFF, HVAC_MODE_HEAT, HVAC_MODE_COOL,
+    HVAC_MODE_HEAT_COOL, PRESET_AWAY, SUPPORT_TARGET_TEMPERATURE,
+    SUPPORT_TARGET_TEMPERATURE_RANGE, SUPPORT_PRESET_MODE, SUPPORT_FAN_MODE,
+    FAN_ON, FAN_AUTO, ATTR_TARGET_TEMP_LOW, ATTR_TARGET_TEMP_HIGH)
 from homeassistant.const import (
     CONF_USERNAME, CONF_PASSWORD, TEMP_CELSIUS, TEMP_FAHRENHEIT,
-    STATE_ON, STATE_OFF, STATE_IDLE, ATTR_TEMPERATURE)
+    ATTR_TEMPERATURE)
 
 _LOGGER = logging.getLogger(__name__)
 
-# HA doesn't have a 'circulate' state defined.
-STATE_CIRCULATE = 'circulate'
+# HA doesn't have a 'circulate' state defined for fan.
+FAN_CIRCULATE = 'circulate'
 
 SUPPORT_FLAGS = (SUPPORT_TARGET_TEMPERATURE |
-                 SUPPORT_TARGET_TEMPERATURE_HIGH |
-                 SUPPORT_TARGET_TEMPERATURE_LOW |
-                 SUPPORT_OPERATION_MODE |
-                 SUPPORT_AWAY_MODE |
+                 SUPPORT_TARGET_TEMPERATURE_RANGE |
+                 SUPPORT_PRESET_MODE |
                  SUPPORT_FAN_MODE)
 
 FAN_MODES = [
-    STATE_AUTO, STATE_ON, STATE_CIRCULATE
+    FAN_AUTO, FAN_ON, FAN_CIRCULATE
 ]
 
-OP_MODES = [
-    STATE_OFF, STATE_HEAT, STATE_COOL, STATE_AUTO
+HVAC_MODES = [
+    HVAC_MODE_OFF, HVAC_MODE_HEAT, HVAC_MODE_COOL, HVAC_MODE_HEAT_COOL
 ]
 
-SYSTEM_STATES = [
-    STATE_IDLE, STATE_HEAT, STATE_COOL
+HVAC_ACTIONS = [
+    CURRENT_HVAC_IDLE, CURRENT_HVAC_HEAT, CURRENT_HVAC_COOL
 ]
 
 TEMP_UNITS = [
@@ -141,11 +137,6 @@ class LennoxClimate(ClimateDevice):
         """Return device specific state attributes."""
         return {
         }
-
-    @property
-    def state(self):
-        """Return the current operational state."""
-        return SYSTEM_STATES[self._api.state]
 
     @property
     def name(self):
@@ -210,14 +201,31 @@ class LennoxClimate(ClimateDevice):
         return self._api.current_humidity
 
     @property
-    def current_operation(self):
-        """Return the current operation mode."""
-        return OP_MODES[self._api.op_mode]
+    def hvac_mode(self):
+        """Return the current hvac operation mode."""
+        return HVAC_MODES[self._api.op_mode]
 
     @property
-    def operation_list(self):
-        """Return the list of available operation modes."""
-        return OP_MODES
+    def hvac_modes(self):
+        """Return the list of available hvac operation modes."""
+        return HVAC_MODES
+
+    @property
+    def hvac_action(self):
+        """Return the current hvac state/action."""
+        return HVAC_ACTIONS[self._api.state]
+
+    @property
+    def preset_mode(self):
+        """Return the current preset mode."""
+        if self._api.away_mode == 1:
+            return PRESET_AWAY
+        return None
+
+    @property
+    def preset_modes(self):
+        """Return a list of available preset modes."""
+        return [PRESET_AWAY]
 
     @property
     def is_away_mode_on(self):
@@ -225,12 +233,12 @@ class LennoxClimate(ClimateDevice):
         return self._api.away_mode
 
     @property
-    def current_fan_mode(self):
+    def fan_mode(self):
         """Return the current fan mode."""
         return FAN_MODES[self._api.fan_mode]
 
     @property
-    def fan_list(self):
+    def fan_modes(self):
         """Return the list of available fan modes."""
         return FAN_MODES
 
@@ -248,15 +256,22 @@ class LennoxClimate(ClimateDevice):
         if not self._api.away_mode:
             self._api.fan_mode = FAN_MODES.index(fan_mode)
 
-    def set_operation_mode(self, operation_mode):
-        """Set new operation mode."""
+    def set_hvac_mode(self, hvac_mode):
+        """Set new hvac operation mode."""
         if not self._api.away_mode:
-            self._api.op_mode = OP_MODES.index(operation_mode)
+            self._api.op_mode = HVAC_MODES.index(hvac_mode)
 
-    def turn_away_mode_on(self):
+    def set_preset_mode(self, preset_mode):
+        """Set new preset mode."""
+        if preset_mode == PRESET_AWAY:
+            self._turn_away_mode_on()
+        else:
+            self._turn_away_mode_off()
+
+    def _turn_away_mode_on(self):
         """Turn away mode on."""
         self._api.away_mode = 1
 
-    def turn_away_mode_off(self):
+    def _turn_away_mode_off(self):
         """Turn away mode off."""
         self._api.away_mode = 0
