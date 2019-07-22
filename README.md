@@ -21,10 +21,10 @@ climate:
 Platform has to be 'myicomfort' but everything else is your's to customize. Don't include the parentheses in your config.  Those are just my way of putting some inline notes in this example.
 
 ### Home Assistant 0.88 to 0.95
-This setup is just like the current code (>= 0.96) but HA overhauled the climate integration in 0.96 resulting in breaking changes. If you are still running a version of HA in this range, you can find working code in an old commit. I should figure out how to do releases so this is easier in the future.  If you need help, please feel free to send me a message.
+This configuration is just like the current code (>= 0.96) but copy the files from 'myicomfort-old' to your 'myicomfort' directory. HA overhauled the climate integration in 0.96 resulting in breaking changes. 
 
 ### Older Home Assistant installations (<0.88)
-Copy 'lennox.py' from 'ha_component' &lt;config directory&gt;/custom_components/climate and add the following to your configuration.yaml file:
+Copy 'lennox.py' from 'ha_component' to &lt;config directory&gt;/custom_components/climate and add the following to your configuration.yaml file:
 ```yaml
 climate:
   - platform: lennox
