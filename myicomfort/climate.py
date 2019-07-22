@@ -16,6 +16,9 @@ Issues:
 Ideas/Future:
 
 Change log:
+  20190721 - Added ability to select cloud service (Lennox or AirEase).
+             Now verifies cloud API connection before adding entity to HA.
+             Requires myicomfort API v0.3.0
   20190720 - Changed code to be HA Climate 1.0 compliant. The climate
              integration was redesigned in Home Assistant 0.96.
   20190505 - Moved requirements to manifest.json. Bumped API requirement to
@@ -97,6 +100,7 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
     vol.Optional('zone', default=0): cv.positive_int,
     vol.Optional('min_temp'): vol.Coerce(float),
     vol.Optional('max_temp'): vol.Coerce(float),
+    vol.Optional('cloud_svc', default='lennox'): cv.string
 })
 
 
@@ -111,11 +115,15 @@ def setup_platform(hass, config, add_entities, discovery_info=None):
     name = config.get('name')
     min_temp = config.get('min_temp')
     max_temp = config.get('max_temp')
+    service = config.get('cloud_svc')
 
-    climate = [LennoxClimate(name, min_temp, max_temp,
-                             Tstat(username, password, system, zone))]
+    tstat = Tstat(username, password, system, zone, service)
+    climate = [LennoxClimate(name, min_temp, max_temp, tstat)]
 
-    add_entities(climate, True)
+    if tstat.connected:
+        add_entities(climate, True)
+    else:
+        _LOGGER.error('Failed to connect to thermostat cloud API.')
 
 
 class LennoxClimate(ClimateDevice):
