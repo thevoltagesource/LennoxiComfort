@@ -61,7 +61,9 @@ from homeassistant.components.climate.const import (
     HVAC_MODE_OFF, HVAC_MODE_HEAT, HVAC_MODE_COOL,
     HVAC_MODE_HEAT_COOL, PRESET_AWAY, SUPPORT_TARGET_TEMPERATURE,
     SUPPORT_TARGET_TEMPERATURE_RANGE, SUPPORT_PRESET_MODE, SUPPORT_FAN_MODE,
-    FAN_ON, FAN_AUTO, ATTR_TARGET_TEMP_LOW, ATTR_TARGET_TEMP_HIGH)
+    FAN_ON, FAN_AUTO, ATTR_TARGET_TEMP_LOW, ATTR_TARGET_TEMP_HIGH,
+    PRESET_NONE,
+)
 from homeassistant.const import (
     CONF_USERNAME, CONF_PASSWORD, TEMP_CELSIUS, TEMP_FAHRENHEIT,
     ATTR_TEMPERATURE)
@@ -233,7 +235,7 @@ class LennoxClimate(ClimateDevice):
     @property
     def preset_modes(self):
         """Return a list of available preset modes."""
-        return [PRESET_AWAY]
+        return [PRESET_NONE, PRESET_AWAY]
 
     @property
     def is_away_mode_on(self):
