@@ -1,65 +1,82 @@
 # Lennox iComfort WiFi Component
-This code set is my custom component for Home Assistant to integrate with a Lennox iComfort WiFi thermostat. This code only works with the iComfort WiFi and not the iComfort S30 or E30.  To help with the distiction and avoid any head banging, I am renaming the component from lennox to myicomfort. To use this code you must have previously created a myicomfort account and connected your iComfort WiFi thermostat to your account. 
+A custom component for Home Assistant to integrate with Lennox iComfort WiFi thermostats and AirEase Comfort Sync thermostats.
 
-Support for AirEase thermostats linked to mycomfortsync.com has been added to the backend API. As with it's Lennox cousin, you must have previously created a mycomfortsync account and connected your thermostat. The integration has been updated to let you select which cloud service is used by your thermostat. Requires HA 0.96 or newer.
+> **Please Note:** This component does not support the Lennox iComfort S30 or Lennox iComfort E30 thermostats.  
 
-When configuring this integration please make sure to follow the directions for your version of Home Assistant.  There have been a couple of major HA changes that has resulted in version specific code/config for this integration.
+#Requirements
 
-The API code used to interface with myicomfort.com (and mycomfortsync.com) has been published to PyPI and HA will install the appropriate version on startup the first time the component is loaded.  You no longer need to manually copy the API code to your installation.  If you previously copied lennox_api.py to your installation it is safe to delete this file now.
+- Home Assistant >= 0.96
+- Thermostat linked to a myicomfort.com (Lennox) or mycomfortsync.com (AirEase) account
 
-### Home Assistant 0.96 and newer
-Copy the 'myicomfort' folder and contents to &lt;config directory&gt;/custom_components/ and add the following to your configuration.yaml file:
+# Installation
+This integration will soon be available in HACS for ease of installation.  
+If you wish to manually install this component, copy the 'myicomfort' folder and contents to &lt;HA config directory&gt;/custom_components/ 
+
+# Configuration
+### Example configuation
 ```yaml
 climate:
+  - platform: myicomfort
+    name: firstfloor
+    username: !secret cloudapi_username
+    password: !secret cloudapi_password
+    system: 0
+    zone: 0
+    min_temp: 55
+    max_temp: 90
+    cloud_svc: airease
+```
+
+### Platform Parameters
+| Name | Type | Requirement | Default | Description |
+| ---- | ---- | ----------- | ------- | ----------- |
+| name | string | required | none | Entity name |
+| username | string | required | none | Cloud service account username |
+| password | string | required | none | Cloud service account password |
+| system | integer | optional | `0` | Select the system for integration if you have multiple on the account. |
+| zone | integer | optional | `0` | Select the zone for integration if the selected system has multiple zones. |
+| min_temp | integer | optional | `45` | Minimum temperature HA can set. |
+| max_temp | integer | optional | `95` | Maximum temperature HA can set. |
+| cloud_svc | string | optional | `lennox` | Cloud service selection - use `lennox` or `airease` | 
+
+### Multiple zones or systems
+Add additional entries under climate for each additional system or zone.
+```yaml
+climate:
+  - platform: myicomfort
+    name: Downstairs
+    username: !secret cloudapi_username
+    password: !secret cloudapi_password
+    system: 0 
+    zone: 0 
+    min_temp: 55
+    max_temp: 90
+    cloud_svc: lennox
+  - platform: myicomfort
+    name: ManCave
+    username: !secret cloudapi_username
+    password: !secret cloudapi_password
+    system: 0 
+    zone: 1 
+    min_temp: 45
+    max_temp: 75
+    cloud_svc: lennox
   - platform: myicomfort
     name: Upstairs
     username: !secret cloudapi_username
     password: !secret cloudapi_password
-    system: 0 (optional, default = 0)
-    zone: 0 (optional, default = 0)
-    min_temp: 55 (optional, default = 45)
-    max_temp: 90 (optional, default = 95)
-    cloud_svc: airease (optional, default = 'lennox', other valid option is 'airease')
+    system: 1 
+    zone: 0 
+    min_temp: 65
+    max_temp: 80
+    cloud_svc: airease
 ```
-Platform has to be 'myicomfort' but everything else is your's to customize. Don't include the parentheses in your config.  Those are just my way of putting some inline notes in this example.
-
-### Home Assistant 0.88 to 0.95
-Copy the 'myicomfort-old' folder and contents to &lt;config directory&gt;/custom_components/, rename the folder to 'myicomfort', and add the following to your configuration.yaml file:
-```yaml
-climate:
-  - platform: myicomfort
-    name: lennox
-    username: !secret icomfort_username
-    password: !secret icomfort_password
-    system: 0 (optional, default = 0)
-    zone: 0 (optional, default = 0)
-    min_temp: 55 (optional, default = 45)
-    max_temp: 90 (optional, default = 95)
-```
-Platform has to be 'myicomfort' but everything else is your's to customize. This version does not support the AirEase thermostat. Don't include the parentheses in your config.  Those are just my way of putting some inline notes in this example.
-
-### Older Home Assistant installations (<0.88)
-Copy 'lennox.py' from 'ha_component' to &lt;config directory&gt;/custom_components/climate and add the following to your configuration.yaml file:
-```yaml
-climate:
-  - platform: lennox
-    name: lennox
-    username: !secret icomfort_username
-    password: !secret icomfort_password
-    system: 0 (optional, default = 0)
-    zone: 0 (optional, default = 0)
-    min_temp: 55 (optional, default = 45)
-    max_temp: 90 (optional, default = 95)
-```
-Platform has to be 'lennox' but everything else is your's to customize. Don't include the parentheses in your config.  Those are just my way of putting some inline notes in this example.
-
 
 # Notes
-If I can figure out how to talk to the thermostat directly I will add that code here as well, but I don't have a lot of hope for that at the moment.  If I get really bored, maybe I could build a fake local cloud server and force my thermostat to talk to it.
-
+If for some reason you are still running HA 0.95 or older, you can still integrate with your thermostat. You just need to grab one of the older code sets from here: https://github.com/thevoltagesource/LennoxiComfort-archive
 
 # Credits
 My code is built on the work of Jerome Avondo (ut666)
-* API: https://github.com/ut666/LennoxPy
-* HA Component: https://github.com/ut666/Homeassistant/tree/master/custom_components/climate
-* Lennox Cloud API details: https://github.com/ut666/LennoxThermoPi-II
+- API: https://github.com/ut666/LennoxPy
+- HA Component: https://github.com/ut666/Homeassistant/tree/master/custom_components/climate
+- Lennox Cloud API details: https://github.com/ut666/LennoxThermoPi-II
