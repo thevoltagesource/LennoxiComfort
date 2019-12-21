@@ -1,0 +1,5 @@
+{
+  "name": "Lennox iComfort WiFi Thermostat Integration",
+  "domains": ["climate"],
+  "homeassistant": "0.96.0"
+}
