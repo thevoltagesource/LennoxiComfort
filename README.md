@@ -3,9 +3,9 @@ A custom component for Home Assistant to integrate with Lennox iComfort WiFi the
 
 [![hacs_badge](https://img.shields.io/badge/HACS-Default-orange.svg)](https://github.com/custom-components/hacs)
 
-> **Please Note:** This component does not support the Lennox iComfort S30 or Lennox iComfort E30 thermostats.  
+> **Please Note:** This component **does not** support the Lennox iComfort S30 or Lennox iComfort E30 thermostats.  
 
-#Requirements
+# Requirements
 
 - Home Assistant >= 0.96
 - Thermostat linked to a myicomfort.com (Lennox) or mycomfortsync.com (AirEase) account
