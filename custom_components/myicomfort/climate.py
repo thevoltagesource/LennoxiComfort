@@ -55,7 +55,7 @@ import logging
 import voluptuous as vol
 
 import homeassistant.helpers.config_validation as cv
-from homeassistant.components.climate import ClimateDevice, PLATFORM_SCHEMA
+from homeassistant.components.climate import ClimateEntity, PLATFORM_SCHEMA
 from homeassistant.components.climate.const import (
     CURRENT_HVAC_COOL, CURRENT_HVAC_HEAT, CURRENT_HVAC_IDLE,
     HVAC_MODE_OFF, HVAC_MODE_HEAT, HVAC_MODE_COOL,
@@ -128,7 +128,7 @@ def setup_platform(hass, config, add_entities, discovery_info=None):
         _LOGGER.error('Failed to connect to thermostat cloud API.')
 
 
-class LennoxClimate(ClimateDevice):
+class LennoxClimate(ClimateEntity):
     """Class for Lennox iComfort WiFi thermostat."""
 
     def __init__(self, name, min_temp, max_temp, api):
