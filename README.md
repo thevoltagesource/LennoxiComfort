@@ -75,6 +75,21 @@ climate:
 ```
 
 # Notes
+
+### Humidity 
+The humidity is exposed to HA as an attribute of the climate entity but since the device doesn't support set_humdity, most of the thermostat cards won't display it. The template platform can be used to capture the humidity and make it accessible as a sensor. You can use the [Simple Thermostat card](https://github.com/nervetattoo/simple-thermostat) to add the sensor to a thermostat card.
+
+Below is a an example to expose the current humidity as a sensor. The climate device is named 'lennox' and the resulting sensor is 'lennox_humidity'.
+```yaml
+platform: template
+sensors:
+  lennox_humidity:
+    value_template: "{{states.climate.lennox.attributes.current_humidity | float}}"
+    friendly_name: "Humidity"
+    unit_of_measurement: '%'
+```
+
+### HA 0.95 or older upgrade
 If for some reason you are still running HA 0.95 or older, you can still integrate with your thermostat. You just need to grab one of the older code sets from here: https://github.com/thevoltagesource/LennoxiComfort-archive
 
 # Credits
