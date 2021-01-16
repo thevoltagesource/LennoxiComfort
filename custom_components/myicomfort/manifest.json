@@ -2,6 +2,7 @@
     "domain": "myicomfort",
     "name": "Lennox iComfort WiFI",
     "documentation": "https://github.com/thevoltagesource/LennoxiComfort",
+    "issue_tracker": "https://github.com/thevoltagesource/LennoxiComfort/issues",
     "dependencies": [],
     "codeowners": ["@thevoltagesource"],
     "requirements": ["voluptuous", "myicomfort==0.4.1"],
