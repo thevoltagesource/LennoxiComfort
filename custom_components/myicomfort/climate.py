@@ -143,7 +143,7 @@ class LennoxClimate(ClimateEntity):
         self._api.pull_status()
 
     @property
-    def device_state_attributes(self):
+    def extra_state_attributes(self):
         """Return device specific state attributes."""
         return {
         }
