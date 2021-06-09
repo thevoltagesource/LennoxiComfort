@@ -255,7 +255,8 @@ class LennoxClimate(ClimateEntity):
     def set_temperature(self, **kwargs):
         """Set new target temperature. API expects a tuple."""
         if not self._api.away_mode:
-            if kwargs.get(ATTR_TEMPERATURE) is not None:
+            if ((kwargs.get(ATTR_TEMPERATURE) is not None) and (
+                self._api.op_mode != 3)):
                 self._api.set_points = (kwargs.get(ATTR_TEMPERATURE), )
             else:
                 self._api.set_points = (kwargs.get(ATTR_TARGET_TEMP_LOW),
