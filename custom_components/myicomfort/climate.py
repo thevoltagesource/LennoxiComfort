@@ -57,12 +57,24 @@ import voluptuous as vol
 import homeassistant.helpers.config_validation as cv
 from homeassistant.components.climate import ClimateEntity, PLATFORM_SCHEMA
 from homeassistant.components.climate.const import (
-    CURRENT_HVAC_COOL, CURRENT_HVAC_HEAT, CURRENT_HVAC_IDLE,
-    HVAC_MODE_OFF, HVAC_MODE_HEAT, HVAC_MODE_COOL,
-    HVAC_MODE_HEAT_COOL, PRESET_AWAY, SUPPORT_TARGET_TEMPERATURE,
-    SUPPORT_TARGET_TEMPERATURE_RANGE, SUPPORT_PRESET_MODE, SUPPORT_FAN_MODE,
-    FAN_ON, FAN_AUTO, ATTR_TARGET_TEMP_LOW, ATTR_TARGET_TEMP_HIGH,
+    CURRENT_HVAC_COOL,
+    CURRENT_HVAC_HEAT,
+    CURRENT_HVAC_IDLE,
+    HVAC_MODE_OFF,
+    HVAC_MODE_HEAT,
+    HVAC_MODE_COOL,
+    HVAC_MODE_HEAT_COOL,
+    PRESET_AWAY,
     PRESET_NONE,
+    SUPPORT_TARGET_TEMPERATURE,
+    SUPPORT_TARGET_TEMPERATURE_RANGE,
+    SUPPORT_AUX_HEAT,
+    SUPPORT_PRESET_MODE,
+    SUPPORT_FAN_MODE,
+    FAN_ON,
+    FAN_AUTO,
+    ATTR_TARGET_TEMP_LOW,
+    ATTR_TARGET_TEMP_HIGH,
 )
 from homeassistant.const import (
     CONF_USERNAME, CONF_PASSWORD, TEMP_CELSIUS, TEMP_FAHRENHEIT,
@@ -76,7 +88,8 @@ FAN_CIRCULATE = 'circulate'
 SUPPORT_FLAGS = (SUPPORT_TARGET_TEMPERATURE |
                  SUPPORT_TARGET_TEMPERATURE_RANGE |
                  SUPPORT_PRESET_MODE |
-                 SUPPORT_FAN_MODE)
+                 SUPPORT_FAN_MODE |
+                 SUPPORT_AUX_HEAT)
 
 FAN_MODES = [
     FAN_AUTO, FAN_ON, FAN_CIRCULATE
@@ -180,7 +193,7 @@ class LennoxClimate(ClimateEntity):
     @property
     def target_temperature(self):
         """Return the temperature we try to reach."""
-        if self._api.op_mode == 1:
+        if self._api.op_mode == 1 or self._api.op_mode == 4:
             return min(self._api.set_points)
         if self._api.op_mode == 2:
             return max(self._api.set_points)
@@ -213,6 +226,8 @@ class LennoxClimate(ClimateEntity):
     @property
     def hvac_mode(self):
         """Return the current hvac operation mode."""
+        if self._api.op_mode == 4:
+            return HVAC_MODE_HEAT
         return HVAC_MODES[self._api.op_mode]
 
     @property
@@ -241,6 +256,13 @@ class LennoxClimate(ClimateEntity):
     def is_away_mode_on(self):
         """Return the current away mode status."""
         return self._api.away_mode
+
+    @property
+    def is_aux_heat(self):
+        """Return the current away mode status."""
+        if self._api.op_mode == 4:
+            return True
+        return False
 
     @property
     def fan_mode(self):
@@ -286,3 +308,12 @@ class LennoxClimate(ClimateEntity):
     def _turn_away_mode_off(self):
         """Turn away mode off."""
         self._api.away_mode = 0
+
+    def turn_aux_heat_on(self):
+        """Turn auxiliary heater on."""
+        self._api.op_mode = 4
+
+    def turn_aux_heat_off(self):
+        """Turn auxiliary heater off."""
+        self.set_hvac_mode(HVAC_MODE_HEAT)
+
