@@ -6,6 +6,6 @@
     "issue_tracker": "https://github.com/thevoltagesource/LennoxiComfort/issues",
     "dependencies": [],
     "codeowners": ["@thevoltagesource"],
-    "requirements": ["voluptuous", "myicomfort==0.4.1"],
+    "requirements": ["voluptuous", "myicomfort==0.5.0"],
     "iot_class": "Cloud Polling"
   }
