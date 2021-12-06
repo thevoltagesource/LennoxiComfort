@@ -3,7 +3,7 @@ A custom component for Home Assistant to integrate with Lennox iComfort WiFi the
 
 [![hacs_badge](https://img.shields.io/badge/HACS-Default-orange.svg)](https://github.com/custom-components/hacs)
 
-> **Please Note:** This component **does not** support the Lennox iComfort S30 or Lennox iComfort E30 thermostats. For those thermostats please check out [PeteRanger's repository](https://github.com/PeteRager/lennoxs30).
+> **Please Note:** This component **does not** support the Lennox iComfort S30 or Lennox iComfort E30 thermostats. For those thermostats please check out [PeteRager's repository](https://github.com/PeteRager/lennoxs30).
 
 # Requirements
 
