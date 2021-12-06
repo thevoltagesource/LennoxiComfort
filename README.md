@@ -3,15 +3,15 @@ A custom component for Home Assistant to integrate with Lennox iComfort WiFi the
 
 [![hacs_badge](https://img.shields.io/badge/HACS-Default-orange.svg)](https://github.com/custom-components/hacs)
 
-> **Please Note:** This component **does not** support the Lennox iComfort S30 or Lennox iComfort E30 thermostats.  
+> **Please Note:** This component **does not** support the Lennox iComfort S30 or Lennox iComfort E30 thermostats. For those thermostats please check out [PeteRanger's repository](https://github.com/PeteRager/lennoxs30).
 
 # Requirements
 
-- Home Assistant >= 0.96
+- Home Assistant >= 2021.4
 - Thermostat linked to a myicomfort.com (Lennox) or mycomfortsync.com (AirEase) account
 
 # Installation
-This integration will soon be available in HACS for ease of installation.  
+This integration is available in HACS for ease of installation.  
 If you wish to manually install this component, copy the 'myicomfort' folder and contents to &lt;HA config directory&gt;/custom_components/ 
 
 # Configuration
@@ -89,7 +89,10 @@ sensors:
     unit_of_measurement: '%'
 ```
 
-### HA 0.95 or older upgrade
+### HA 0.96 to 2021.4 
+There were minor changes to the climate platform between 0.96 and 2021.4. You can read thru release notes in this repository to find a version that works for you.
+
+### HA 0.95 or older
 If for some reason you are still running HA 0.95 or older, you can still integrate with your thermostat. You just need to grab one of the older code sets from here: https://github.com/thevoltagesource/LennoxiComfort-archive
 
 # Credits

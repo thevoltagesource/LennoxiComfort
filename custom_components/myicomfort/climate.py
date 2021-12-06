@@ -4,7 +4,7 @@ Lennox iComfort WiFi Climate Component for Home Assisant.
 By Jacob Southard (github.com/thevoltagesource)
 Based on the work of Jerome Avondo (github.com/ut666)
 
-Tested against Home Assistant Version: 0.96.2
+Tested against Home Assistant Version: 2021.11.3
 
 Notes:
   The away mode set points can only be set on the thermostat.  The code below
@@ -16,9 +16,23 @@ Issues:
 Ideas/Future:
 
 Change log:
+  20211206 - Added SUPPORT_AUX_HEAT. Made required changes to integration to 
+             handle aux/emergency heat mode. API also required changes so the
+             required version was updated (>= v0.5.x).
+             also updated to support this mode.
+  20210609 - Bug Fix - Changed set_temperature logic to handle the way HomeKit
+             updates set points. Changed changed device_state_attributes to
+             extras_state_attributes to match climate platform change in 
+             HA 2021.4
+  20210507 - Update manifest.json file to add required items.
+  20200620 - Changed from ClimateDevice to CliemateEntity to support new
+             climate standard introduced in HA v0.110.
+  20200222 - Bump API version number.
+  20191222 - Bug fix - bump API version which addressed a zone selection bug.         
+  20191221 - Added support for AirEase thermostats.           
   20190721 - Added ability to select cloud service (Lennox or AirEase).
              Now verifies cloud API connection before adding entity to HA.
-             Requires myicomfort API v0.3.0
+             Requires myicomfort API v0.3.0 or higher
   20190720 - Changed code to be HA Climate 1.0 compliant. The climate
              integration was redesigned in Home Assistant 0.96.
   20190505 - Moved requirements to manifest.json. Bumped API requirement to
@@ -82,7 +96,7 @@ from homeassistant.const import (
 
 _LOGGER = logging.getLogger(__name__)
 
-# HA doesn't have a 'circulate' state defined for fan.
+# HA doesn't have a 'circulate' mode defined for fan.
 FAN_CIRCULATE = 'circulate'
 
 SUPPORT_FLAGS = (SUPPORT_TARGET_TEMPERATURE |
