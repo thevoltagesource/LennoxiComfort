@@ -16,6 +16,9 @@ Issues:
 Ideas/Future:
 
 Change log:
+  202112xx - Map api state = 3 (system waiting) as CURRENT_HVAC_IDLE. Add 
+             item system_waiting to extra_device_attributes as (boolean) True
+             when state = 3 otherwise False.
   20211206 - Added SUPPORT_AUX_HEAT. Made required changes to integration to 
              handle aux/emergency heat mode. API also required changes so the
              required version was updated (>= v0.5.x).
@@ -172,8 +175,9 @@ class LennoxClimate(ClimateEntity):
     @property
     def extra_state_attributes(self):
         """Return device specific state attributes."""
-        return {
-        }
+        data = {}
+        data["system_waiting"] = True if self._api.state == 3 else False
+        return data
 
     @property
     def name(self):
@@ -252,6 +256,8 @@ class LennoxClimate(ClimateEntity):
     @property
     def hvac_action(self):
         """Return the current hvac state/action."""
+        if self._api.state == 3:
+            return CURRENT_HVAC_IDLE
         return HVAC_ACTIONS[self._api.state]
 
     @property
