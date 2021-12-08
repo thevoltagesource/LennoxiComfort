@@ -16,7 +16,7 @@ Issues:
 Ideas/Future:
 
 Change log:
-  202112xx - Map api state = 3 (system waiting) as CURRENT_HVAC_IDLE. Add 
+  20211207 - Map api state = 3 (system waiting) as CURRENT_HVAC_IDLE. Add 
              item system_waiting to extra_device_attributes as (boolean) True
              when state = 3 otherwise False.
   20211206 - Added SUPPORT_AUX_HEAT. Made required changes to integration to 
