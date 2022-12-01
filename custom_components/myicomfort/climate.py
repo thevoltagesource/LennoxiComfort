@@ -16,6 +16,8 @@ Issues:
 Ideas/Future:
 
 Change log:
+  20221130 - Create unique_id property which is generated as the seystem serial
+             number and the zone  <sn>z<zone>.
   20211207 - Map api state = 3 (system waiting) as CURRENT_HVAC_IDLE. Add 
              item system_waiting to extra_device_attributes as (boolean) True
              when state = 3 otherwise False.
@@ -183,6 +185,11 @@ class LennoxClimate(ClimateEntity):
     def name(self):
         """Return the name of the climate device."""
         return self._name
+
+    @property
+    def unique_id(self):
+        """Return unique_id for this system/zone"""
+        return self._api.serial_number + 'z' + str(self._api.zone)
 
     @property
     def supported_features(self):
