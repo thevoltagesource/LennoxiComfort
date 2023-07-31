@@ -81,12 +81,11 @@ The humidity is exposed to HA as an attribute of the climate entity but since th
 
 Below is a an example to expose the current humidity as a sensor. The climate device is named 'lennox' and the resulting sensor is 'lennox_humidity'.
 ```yaml
-platform: template
-sensors:
-  lennox_humidity:
-    value_template: "{{states.climate.lennox.attributes.current_humidity | float}}"
-    friendly_name: "Humidity"
-    unit_of_measurement: '%'
+template:
+  - sensor:
+    - name: lennox_humidity
+      unit_of_measurement: '%'
+      state: '{{ states.climate.lennox.attributes.current_humidity | float }}'
 ```
 
 ### HA 0.96 to 2021.4 
