@@ -98,7 +98,7 @@ from homeassistant.const import (
 _LOGGER = logging.getLogger(__name__)
 
 # HA doesn't have a 'circulate' mode defined for fan.
-FAN_CIRCULATE = 'circulate'
+FAN_CIRCULATE = 'Circulate'
 
 SUPPORT_FLAGS = (ClimateEntityFeature.TARGET_TEMPERATURE |
                  ClimateEntityFeature.TARGET_TEMPERATURE_RANGE |
