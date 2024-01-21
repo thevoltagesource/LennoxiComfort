@@ -7,7 +7,7 @@ A custom component for Home Assistant to integrate with Lennox iComfort WiFi the
 
 # Requirements
 
-- Home Assistant >= 2021.4
+- Home Assistant >= 2022.12
 - Thermostat linked to a myicomfort.com (Lennox) or mycomfortsync.com (AirEase) account
 
 # Installation
