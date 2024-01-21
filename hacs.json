@@ -1,6 +1,6 @@
 {
   "name": "Lennox iComfort WiFi Thermostat Integration",
   "domains": ["climate"],
-  "homeassistant": "2021.4.0",
+  "homeassistant": "2022.12.0",
   "iot_class": "Cloud Polling"
 }

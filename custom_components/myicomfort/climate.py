@@ -4,7 +4,7 @@ Lennox iComfort WiFi Climate Component for Home Assisant.
 By Jacob Southard (github.com/thevoltagesource)
 Based on the work of Jerome Avondo (github.com/ut666)
 
-Tested against Home Assistant Version: 2021.11.3
+Tested against Home Assistant Version: 2024.1.0
 
 Notes:
   The away mode set points can only be set on the thermostat.  The code below
@@ -16,6 +16,10 @@ Issues:
 Ideas/Future:
 
 Change log:
+  20240103 - Changed const CURRENT_HVAC_* to use HVACAction.*
+             Changed const HVAC_MODE_* to use HVACMode.*
+             Changed const SUPPORT_* to use ClimateEntityFeature.*
+             Changed const TEMP_* to use UnitOfTemperature.*
   20221130 - Create unique_id property which is generated as the seystem serial
              number and the zone  <sn>z<zone>.
   20211207 - Map api state = 3 (system waiting) as CURRENT_HVAC_IDLE. Add 
@@ -76,54 +80,46 @@ import voluptuous as vol
 import homeassistant.helpers.config_validation as cv
 from homeassistant.components.climate import ClimateEntity, PLATFORM_SCHEMA
 from homeassistant.components.climate.const import (
-    CURRENT_HVAC_COOL,
-    CURRENT_HVAC_HEAT,
-    CURRENT_HVAC_IDLE,
-    HVAC_MODE_OFF,
-    HVAC_MODE_HEAT,
-    HVAC_MODE_COOL,
-    HVAC_MODE_HEAT_COOL,
+    HVACAction,
+    HVACMode,
     PRESET_AWAY,
     PRESET_NONE,
-    SUPPORT_TARGET_TEMPERATURE,
-    SUPPORT_TARGET_TEMPERATURE_RANGE,
-    SUPPORT_AUX_HEAT,
-    SUPPORT_PRESET_MODE,
-    SUPPORT_FAN_MODE,
+    ClimateEntityFeature,
     FAN_ON,
     FAN_AUTO,
     ATTR_TARGET_TEMP_LOW,
     ATTR_TARGET_TEMP_HIGH,
 )
 from homeassistant.const import (
-    CONF_USERNAME, CONF_PASSWORD, TEMP_CELSIUS, TEMP_FAHRENHEIT,
+    CONF_USERNAME, CONF_PASSWORD, 
+    UnitOfTemperature, 
     ATTR_TEMPERATURE)
 
 _LOGGER = logging.getLogger(__name__)
 
 # HA doesn't have a 'circulate' mode defined for fan.
-FAN_CIRCULATE = 'circulate'
+FAN_CIRCULATE = 'Circulate'
 
-SUPPORT_FLAGS = (SUPPORT_TARGET_TEMPERATURE |
-                 SUPPORT_TARGET_TEMPERATURE_RANGE |
-                 SUPPORT_PRESET_MODE |
-                 SUPPORT_FAN_MODE |
-                 SUPPORT_AUX_HEAT)
+SUPPORT_FLAGS = (ClimateEntityFeature.TARGET_TEMPERATURE |
+                 ClimateEntityFeature.TARGET_TEMPERATURE_RANGE |
+                 ClimateEntityFeature.PRESET_MODE |
+                 ClimateEntityFeature.FAN_MODE |
+                 ClimateEntityFeature.AUX_HEAT)
 
 FAN_MODES = [
     FAN_AUTO, FAN_ON, FAN_CIRCULATE
 ]
 
 HVAC_MODES = [
-    HVAC_MODE_OFF, HVAC_MODE_HEAT, HVAC_MODE_COOL, HVAC_MODE_HEAT_COOL
+    HVACMode.OFF, HVACMode.HEAT, HVACMode.COOL, HVACMode.HEAT_COOL
 ]
 
 HVAC_ACTIONS = [
-    CURRENT_HVAC_IDLE, CURRENT_HVAC_HEAT, CURRENT_HVAC_COOL
+    HVACAction.IDLE, HVACAction.HEATING, HVACAction.COOLING
 ]
 
 TEMP_UNITS = [
-    TEMP_FAHRENHEIT, TEMP_CELSIUS
+    UnitOfTemperature.FAHRENHEIT, UnitOfTemperature.CELSIUS
 ]
 
 PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
@@ -252,7 +248,7 @@ class LennoxClimate(ClimateEntity):
     def hvac_mode(self):
         """Return the current hvac operation mode."""
         if self._api.op_mode == 4:
-            return HVAC_MODE_HEAT
+            return HVACMode.HEAT
         return HVAC_MODES[self._api.op_mode]
 
     @property
@@ -264,7 +260,7 @@ class LennoxClimate(ClimateEntity):
     def hvac_action(self):
         """Return the current hvac state/action."""
         if self._api.state == 3:
-            return CURRENT_HVAC_IDLE
+            return HVACAction.IDLE
         return HVAC_ACTIONS[self._api.state]
 
     @property
@@ -342,5 +338,5 @@ class LennoxClimate(ClimateEntity):
 
     def turn_aux_heat_off(self):
         """Turn auxiliary heater off."""
-        self.set_hvac_mode(HVAC_MODE_HEAT)
+        self.set_hvac_mode(HVACMode.HEAT)
 
