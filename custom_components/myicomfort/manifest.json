@@ -1,7 +1,7 @@
 {
     "domain": "myicomfort",
     "name": "Lennox iComfort WiFI",
-    "version": "3.4.0",
+    "version": "3.4.1",
     "documentation": "https://github.com/thevoltagesource/LennoxiComfort",
     "issue_tracker": "https://github.com/thevoltagesource/LennoxiComfort/issues",
     "dependencies": [],

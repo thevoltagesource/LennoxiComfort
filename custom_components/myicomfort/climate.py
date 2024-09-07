@@ -16,6 +16,9 @@ Issues:
 Ideas/Future:
 
 Change log:
+  20240417 - Auxiliary heater is deprecated in HA COre 2024.4
+             Removed ClimateEntityFeature.AUX_HEAT from SUPPORTED_FLAGS
+             Removed is_aux_heat property, turn_aux_heat_on/turn_aux_heat_off methods
   20240103 - Changed const CURRENT_HVAC_* to use HVACAction.*
              Changed const HVAC_MODE_* to use HVACMode.*
              Changed const SUPPORT_* to use ClimateEntityFeature.*
@@ -103,8 +106,7 @@ FAN_CIRCULATE = 'Circulate'
 SUPPORT_FLAGS = (ClimateEntityFeature.TARGET_TEMPERATURE |
                  ClimateEntityFeature.TARGET_TEMPERATURE_RANGE |
                  ClimateEntityFeature.PRESET_MODE |
-                 ClimateEntityFeature.FAN_MODE |
-                 ClimateEntityFeature.AUX_HEAT)
+                 ClimateEntityFeature.FAN_MODE)
 
 FAN_MODES = [
     FAN_AUTO, FAN_ON, FAN_CIRCULATE
@@ -281,13 +283,6 @@ class LennoxClimate(ClimateEntity):
         return self._api.away_mode
 
     @property
-    def is_aux_heat(self):
-        """Return the current away mode status."""
-        if self._api.op_mode == 4:
-            return True
-        return False
-
-    @property
     def fan_mode(self):
         """Return the current fan mode."""
         return FAN_MODES[self._api.fan_mode]
@@ -331,12 +326,3 @@ class LennoxClimate(ClimateEntity):
     def _turn_away_mode_off(self):
         """Turn away mode off."""
         self._api.away_mode = 0
-
-    def turn_aux_heat_on(self):
-        """Turn auxiliary heater on."""
-        self._api.op_mode = 4
-
-    def turn_aux_heat_off(self):
-        """Turn auxiliary heater off."""
-        self.set_hvac_mode(HVACMode.HEAT)
-
