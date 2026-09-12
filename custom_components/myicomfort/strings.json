@@ -1,0 +1,47 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Add Lennox iComfort hub",
+        "description": "Add one system and zone. Repeat this setup for additional zones.",
+        "data": {
+          "name": "Hub name",
+          "username": "Username",
+          "password": "Password",
+          "system": "System number",
+          "zone": "Zone number",
+          "min_temp": "Minimum temperature",
+          "max_temp": "Maximum temperature",
+          "cloud_svc": "Cloud service"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Unable to connect to the selected thermostat system and zone."
+    },
+    "abort": {
+      "already_configured": "This account, service, system, and zone are already configured."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Edit Lennox iComfort hub",
+        "description": "Update this hub's account, system, zone, and temperature limits.",
+        "data": {
+          "name": "Hub name",
+          "username": "Username",
+          "password": "Password",
+          "system": "System number",
+          "zone": "Zone number",
+          "min_temp": "Minimum temperature",
+          "max_temp": "Maximum temperature",
+          "cloud_svc": "Cloud service"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Unable to connect to the selected thermostat system and zone."
+    }
+  }
+}
