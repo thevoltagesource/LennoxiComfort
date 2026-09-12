@@ -6,7 +6,12 @@ A custom component for Home Assistant to integrate with Lennox iComfort WiFi the
 > **Please Note:** This component **does not** support the Lennox iComfort S30 or Lennox iComfort E30 thermostats.  
 
 ## Basic Configuration
-In the 'configuration.yaml' file, add the following section:
+Add the integration from **Settings > Devices & services > Add integration** and
+select **Lennox iComfort**. Enter an account, then select the systems and zones to
+expose. Repeat the setup only for another account or cloud service.
+
+Existing YAML configuration is imported automatically as config entries. After the
+import, remove the old section from `configuration.yaml`:
 ```yaml
 climate:
   - platform: myicomfort

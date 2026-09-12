@@ -1,10 +1,13 @@
 {
     "domain": "myicomfort",
     "name": "Lennox iComfort WiFI",
-    "version": "3.4.1",
+    "version": "4.0.16",
+    "homeassistant": "2024.4.1",
     "documentation": "https://github.com/thevoltagesource/LennoxiComfort",
     "issue_tracker": "https://github.com/thevoltagesource/LennoxiComfort/issues",
     "dependencies": [],
+    "config_flow": true,
+    "integration_type": "hub",
     "codeowners": ["@thevoltagesource"],
     "requirements": ["voluptuous", "myicomfort==0.7.0"],
     "iot_class": "Cloud Polling"

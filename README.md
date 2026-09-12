@@ -7,7 +7,7 @@ A custom component for Home Assistant to integrate with Lennox iComfort WiFi the
 
 # Requirements
 
-- Home Assistant >= 2022.12
+- Home Assistant >= 2024.4.1
 - Thermostat linked to a myicomfort.com (Lennox) or mycomfortsync.com (AirEase) account
 
 # Installation
@@ -15,7 +15,17 @@ This integration is available in HACS for ease of installation.
 If you wish to manually install this component, copy the 'myicomfort' folder and contents to &lt;HA config directory&gt;/custom_components/ 
 
 # Configuration
-### Example configuation
+Add the integration from **Settings > Devices & services > Add integration** and select
+**Lennox iComfort**. Add one hub for each system and zone you want to expose. All
+account credentials, service, system, zone, name, and temperature limits belong to
+that hub. Repeat the setup for additional systems or zones.
+
+### Legacy YAML migration
+Existing YAML entries are imported automatically as config entries when Home Assistant
+starts. After confirming the imported entities are available, remove the old entries
+from `configuration.yaml` to prevent the migration warning on future restarts.
+
+The legacy format is:
 ```yaml
 climate:
   - platform: myicomfort
@@ -29,7 +39,7 @@ climate:
     cloud_svc: airease
 ```
 
-### Platform Parameters
+### Legacy YAML parameters
 | Name | Type | Requirement | Default | Description |
 | ---- | ---- | ----------- | ------- | ----------- |
 | name | string | required | none | Entity name |
@@ -42,7 +52,8 @@ climate:
 | cloud_svc | string | optional | `lennox` | Cloud service selection - use `lennox` or `airease` | 
 
 ### Multiple zones or systems
-Add additional entries under climate for each additional system or zone.
+Create one GUI hub for each system/zone. The legacy YAML format supported the following
+equivalent configuration:
 ```yaml
 climate:
   - platform: myicomfort

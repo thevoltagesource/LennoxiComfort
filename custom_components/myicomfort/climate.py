@@ -98,6 +98,8 @@ from homeassistant.const import (
     UnitOfTemperature, 
     ATTR_TEMPERATURE)
 
+from . import DOMAIN
+
 _LOGGER = logging.getLogger(__name__)
 
 # HA doesn't have a 'circulate' mode defined for fan.
@@ -137,36 +139,72 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
 
 
 def setup_platform(hass, config, add_entities, discovery_info=None):
-    """Set up the climate platform."""
+    """Keep legacy YAML loading from creating a duplicate entity."""
+    _LOGGER.warning(
+        "myicomfort YAML configuration is imported as a config entry; "
+        "remove it from configuration.yaml after the import completes"
+    )
+
+
+async def async_setup_entry(hass, config_entry, async_add_entities):
+    """Set up all selected climate entities from an account config entry."""
     from myicomfort.api import Tstat
 
-    username = config.get(CONF_USERNAME)
-    password = config.get(CONF_PASSWORD)
-    system = config.get('system')
-    zone = config.get('zone')
-    name = config.get('name')
-    min_temp = config.get('min_temp')
-    max_temp = config.get('max_temp')
-    service = config.get('cloud_svc')
-
-    tstat = Tstat(username, password, system, zone, service)
-    climate = [LennoxClimate(name, min_temp, max_temp, tstat)]
+    config = {**config_entry.data, **config_entry.options}
+    username = config[CONF_USERNAME]
+    password = config[CONF_PASSWORD]
+    system = config.get('system', 0)
+    zone = config.get('zone', 0)
+    name = config.get('name') or f"System {system + 1} Zone {zone + 1}"
+    service = config.get('cloud_svc', 'lennox')
+    tstat = await hass.async_add_executor_job(
+        Tstat, username, password, system, zone, service
+    )
 
     if tstat.connected:
-        add_entities(climate, True)
+        async_add_entities(
+            [
+                LennoxClimate(
+                    name,
+                    config.get('min_temp'),
+                    config.get('max_temp'),
+                    tstat,
+                    username,
+                    service,
+                    system,
+                    zone,
+                )
+            ]
+        )
     else:
-        _LOGGER.error('Failed to connect to thermostat cloud API.')
+        _LOGGER.error(
+            "Failed to connect to system %s zone %s.", system, zone
+        )
 
 
 class LennoxClimate(ClimateEntity):
     """Class for Lennox iComfort WiFi thermostat."""
 
-    def __init__(self, name, min_temp, max_temp, api):
+    def __init__(
+        self, name, min_temp, max_temp, api, username, service, system, zone
+    ):
         """Initialize the climate device."""
         self._name = name
         self._api = api
         self._min_temp = min_temp
         self._max_temp = max_temp
+        self._api_username = username
+        self._hub_identifier = f"{service}:{username}:{system}:{zone}".lower()
+
+    @property
+    def device_info(self):
+        """Return the shared cloud account hub information."""
+        return {
+            "identifiers": {(DOMAIN, self._hub_identifier)},
+            "name": self._name,
+            "manufacturer": "Lennox",
+            "model": "iComfort Cloud Account",
+        }
 
     def update(self):
         """Update data from the thermostat API."""
@@ -177,6 +215,7 @@ class LennoxClimate(ClimateEntity):
         """Return device specific state attributes."""
         data = {}
         data["system_waiting"] = True if self._api.state == 3 else False
+        data["current_humidity"] = self._api.current_humidity
         return data
 
     @property
