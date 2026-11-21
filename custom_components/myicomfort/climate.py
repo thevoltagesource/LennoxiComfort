@@ -16,6 +16,10 @@ Issues:
 Ideas/Future:
 
 Change log:
+  20261121 - Bug Fix - The thermostat silently rejects set points closer
+             together than its 3F deadband, including the unused set point
+             in heat or cool mode. set_temperature now moves the other set
+             point out of the way when needed.
   20240417 - Auxiliary heater is deprecated in HA COre 2024.4
              Removed ClimateEntityFeature.AUX_HEAT from SUPPORTED_FLAGS
              Removed is_aux_heat property, turn_aux_heat_on/turn_aux_heat_off methods
@@ -123,6 +127,10 @@ HVAC_ACTIONS = [
 TEMP_UNITS = [
     UnitOfTemperature.FAHRENHEIT, UnitOfTemperature.CELSIUS
 ]
+
+# Minimum gap the thermostat accepts between heat and cool set points,
+# indexed by the API's temperature units (0 = F, 1 = C).
+DEADBAND = [3, 1.5]
 
 PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
     vol.Required(CONF_USERNAME): cv.string,
@@ -293,14 +301,31 @@ class LennoxClimate(ClimateEntity):
         return FAN_MODES
 
     def set_temperature(self, **kwargs):
-        """Set new target temperature. API expects a tuple."""
+        """Set new target temperature. API expects a tuple.
+
+        The thermostat rejects set points closer together than its deadband,
+        even for the set point the current mode doesn't use, so move the
+        other set point out of the way when needed.
+        """
         if not self._api.away_mode:
-            if ((kwargs.get(ATTR_TEMPERATURE) is not None) and (
-                self._api.op_mode != 3)):
-                self._api.set_points = (kwargs.get(ATTR_TEMPERATURE), )
+            deadband = DEADBAND[self._api.temperature_units]
+            heat_to, cool_to = self._api.set_points
+            temp = kwargs.get(ATTR_TEMPERATURE)
+            if temp is not None and self._api.op_mode != 3:
+                if self._api.op_mode == 2:
+                    self._api.set_points = (min(heat_to, temp - deadband),
+                                            temp)
+                elif self._api.op_mode in (1, 4):
+                    self._api.set_points = (temp,
+                                            max(cool_to, temp + deadband))
+                else:
+                    self._api.set_points = (temp, )
             else:
-                self._api.set_points = (kwargs.get(ATTR_TARGET_TEMP_LOW),
-                                        kwargs.get(ATTR_TARGET_TEMP_HIGH))
+                low = kwargs.get(ATTR_TARGET_TEMP_LOW)
+                high = kwargs.get(ATTR_TARGET_TEMP_HIGH)
+                if low is not None and high is not None:
+                    high = max(high, low + deadband)
+                self._api.set_points = (low, high)
 
     def set_fan_mode(self, fan_mode):
         """Set new fan mode."""
